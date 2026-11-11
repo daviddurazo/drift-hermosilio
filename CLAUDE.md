@@ -19,6 +19,7 @@ python3 -I tools/build_map.py data/raw/centro_campana.json src/map.js [preview.p
 - Escribe `src/map.js` (`window.HMO_MAP`): tiles en RLE base64 más `pois`.
 - Requiere numpy y PIL. Tarda ~3 s.
 - Regenerar puede mover gasolineras y talleres generados; la casa guardada del jugador se queda donde estaba.
+- Ancho de calles: `ROAD_WIDTH_M` (metros reales por tipo) × `ROAD_SCALE` (1.35; las de servicio no se escalan). Se redondea a tiles de 3 m: una residencial queda de 4 tiles (12 m).
 - Datos © colaboradores de OpenStreetMap (ODbL). El crédito ya está en las páginas.
 
 ## Archivos

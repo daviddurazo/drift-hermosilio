@@ -50,6 +50,8 @@ ROAD_WIDTH_M = {
     'motorway_link': 9, 'trunk_link': 9, 'primary_link': 8, 'secondary_link': 8, 'tertiary_link': 8,
     'service': 6,
 }
+# las calles reales se sienten angostas para derrapar: todas (menos las de servicio) se ensanchan con este factor
+ROAD_SCALE = 1.35
 MAJOR = {'motorway', 'trunk', 'primary', 'secondary'}
 SKIP_SERVICE = {'driveway', 'parking_aisle', 'drive-through'}
 
@@ -238,6 +240,8 @@ def main(src, out_js, out_png=None):
                 wm = max(wm * 0.7, min(wm * 1.4, lanes * 3.4 + 2))
         except ValueError:
             pass
+        if hw != 'service':
+            wm *= ROAD_SCALE
         roads.append((hw, pts, max(2, round(wm / TILE_M))))
     # primero las angostas, luego las anchas encima
     roads.sort(key=lambda r: r[2])
