@@ -66,6 +66,7 @@ python3 -I tools/build_map.py data/raw/centro_campana.json src/map.js [preview.p
 - **El tuneo modifica la especificación**; la física solo lee `spec`: `powerKW`, `grip`, `slideGrip`, `steerSpeed`, `brake`, `mass`, `cgHeight`, `handbrakeGrip`, `drive`.
 - **CSS:** las páginas tienen `[hidden] { display: none !important; }`. Sin esa regla, un elemento con `display: flex` ignora `hidden`; ese error ya pasó con la pantalla de la grúa.
 - **Botones:** después de un clic se llama `blur()`, para que Espacio (freno de mano) no los vuelva a activar.
+- **Paleta «Fachadas mexicanas»** (`C` en `src/tiles.js`): casas, edificios, carros estacionados, árboles, sahuaros y rocas en colores saturados (rosa mexicano, turquesa, mostaza, cobalto, naranja, verde, terracota, morado, amarillo). Calles, banquetas, parques y cerro se quedan neutros. La capa de noche se queda al 84 %.
 - **Marcas:** sin nombres de marcas reales en el juego (gasolineras dicen «Gasolinera», frenos «Kit de alto desempeño»). Carros: **Ba-tsuru** (`pitic`, tipo Tsuru), **Mezquite SR** (`mezquite`, tipo Sentra), **Hondiablo Si** (`choya`, tipo Civic). Los ids internos no cambian; ahí está guardado el progreso.
 
 ## Diseño del juego que pidió el usuario

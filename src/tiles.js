@@ -62,6 +62,8 @@
   }
 
   // ---------------- paleta ----------------
+  // Casas, edificios y obstáculos con la paleta «Fachadas mexicanas»: colores saturados que aguantan la capa de noche.
+  // Calles, banquetas, parques y cerro se quedan neutros para que lo llamativo sean las construcciones.
   const C = {
     asphalt: '#3d4151', asphaltLine: 'rgba(255,255,255,0.035)',
     yellow: '#f2c14e',
@@ -72,26 +74,27 @@
     pitchA: '#5f9f6d', pitchB: '#58976a',
     path: '#dcc79f', dirt: '#c99d6b',
     water: '#4aa3c4', waterHi: '#8fcbe0',
-    roofsBig: ['#d3cec6', '#eeece6', '#dccaa9', '#a9aeb3'], buildingEdge: 'rgba(60,50,40,0.35)',
-    solar: '#2e4a78', solarLine: '#5d7fb3', skylight: '#a9d3e0', tinaco: '#23262e',
+    roofsBig: ['#4a7fd8', '#e8ecf2', '#ff8a3d', '#2a3f78'], buildingEdge: 'rgba(40,25,30,0.4)',
+    solar: '#3b63b8', solarLine: '#8fb0f0', skylight: '#a9d3e0', tinaco: '#23262e',
     track: '#c4624a', trackLine: 'rgba(255,255,255,0.55)',
-    cars: ['#d9534f', '#f2f2ee', '#2b2f3a', '#5b8bd9', '#c0c4c8', '#e8b84a', '#8a2b2b', '#4f9a7a'],
+    cars: ['#ff3b3b', '#ffffff', '#1e2230', '#2f7bff', '#ffcf33', '#18a999', '#8e44ad', '#f0652a'],
     campus: '#e3dac7',
-    rock: '#9c8a78', desert: '#d6b486',
+    rock: '#a0663f', desert: '#d6b486',
     cerro: ['#bb8b5f', '#c5986b', '#cfa678', '#d9b487', '#e3c398'],
     cliff: 'rgba(92,58,32,0.55)',
-    lot: '#cdb08a',
-    roofs: ['#ebe3d5', '#dcc6a6', '#c9704f', '#e2a35f', '#9fc3bd', '#d99d8f', '#efd9a6', '#bdb4a9', '#e8e8e2'],
+    lot: '#c98a4b',
+    // rosa mexicano, turquesa, mostaza, cobalto, naranja, verde, terracota, morado, amarillo
+    roofs: ['#e6336f', '#18a999', '#f2a900', '#2d5bd2', '#f0652a', '#3fae4f', '#c0392b', '#8e44ad', '#ffcf33'],
     cooler: '#9aa3ab', coolerDark: '#6f7880',
-    tree: '#3f7f4c', treeHi: '#5c9c5c',
-    saguaro: '#4c8a4f', saguaroHi: '#6aa866',
+    tree: '#1f9a4a', treeHi: '#4cc66a',
+    saguaro: '#2f9e4f', saguaroHi: '#5fd27a',
     shadow: 'rgba(25,22,45,0.22)',
     out: '#1d1f29',
   };
 
   // color simple por tile para el mapa alejado (1 px por tile)
   const OVERVIEW = {
-    0: '#d6bf9f', 1: C.asphalt, 2: C.asphalt, 3: C.sidewalk, 4: C.parking, 5: C.plazaA, 6: C.parkA, 7: C.pitchA,
+    0: '#d4604a', 1: C.asphalt, 2: C.asphalt, 3: C.sidewalk, 4: C.parking, 5: C.plazaA, 6: C.parkA, 7: C.pitchA,
     8: C.path, 9: C.water, 11: C.campus, 12: C.rock, 13: C.desert, 14: C.tree, 15: C.saguaro,
     16: C.dirt, 17: C.track, 18: C.parking, 19: '#cdd1d4', 26: '#f2c14e', 27: '#a9a49b', 30: C.roofsBig[0], 31: C.roofsBig[1], 32: C.roofsBig[2], 33: C.roofsBig[3], 20: C.cerro[0], 21: C.cerro[1], 22: C.cerro[2], 23: C.cerro[3], 24: C.cerro[4],
   };
