@@ -1,0 +1,151 @@
+{
+  "version": 0.6,
+  "generator": "Overpass API 0.7.62.11 87bfad18",
+  "osm3s": {
+    "timestamp_osm_base": "2026-11-11T02:33:33Z",
+    "copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL."
+  },
+  "elements": [
+
+{
+  "type": "node",
+  "id": 1338849319,
+  "lat": 29.0693218,
+  "lon": -110.9705245,
+  "tags": {
+    "amenity": "fuel",
+    "brand": "Pemex",
+    "brand:wikidata": "Q871308",
+    "brand:wikipedia": "en:Pemex",
+    "name": "Pemex"
+  }
+},
+{
+  "type": "node",
+  "id": 3453573829,
+  "lat": 29.0936741,
+  "lon": -110.9547031,
+  "tags": {
+    "addr:city": "Hermosillo",
+    "addr:housenumber": "109",
+    "addr:postcode": "83190",
+    "addr:street": "Abelardo L Rodriguez",
+    "amenity": "fuel",
+    "name": "SUCURSAL CENTRO",
+    "operator": "RENDIMAS"
+  }
+},
+{
+  "type": "node",
+  "id": 4345337993,
+  "lat": 29.0929450,
+  "lon": -110.9696673,
+  "tags": {
+    "addr:city": "Hermosillo",
+    "addr:street": "Nayarit",
+    "amenity": "fuel",
+    "fuel:gasolina": "yes",
+    "name": "Pemex"
+  }
+},
+{
+  "type": "node",
+  "id": 4839888972,
+  "lat": 29.0839135,
+  "lon": -110.9536972,
+  "tags": {
+    "amenity": "fuel",
+    "name": "Pemex"
+  }
+},
+{
+  "type": "node",
+  "id": 5312614801,
+  "lat": 29.0832280,
+  "lon": -110.9495444,
+  "tags": {
+    "amenity": "fuel",
+    "name": "Servigas El Nocturnal"
+  }
+},
+{
+  "type": "node",
+  "id": 5312614806,
+  "lat": 29.0832197,
+  "lon": -110.9493062,
+  "tags": {
+    "amenity": "fuel",
+    "name": "Servigas El Nocturnal"
+  }
+},
+{
+  "type": "node",
+  "id": 13668235579,
+  "lat": 29.0668705,
+  "lon": -110.9607153,
+  "tags": {
+    "access": "yes",
+    "amenity": "charging_station",
+    "brand": "Electrolinera Pública del Estado de Sonora",
+    "capacity": "10",
+    "operator": "Gobierno del Estado",
+    "payment:free": "yes"
+  }
+},
+{
+  "type": "way",
+  "id": 645832818,
+  "center": {
+    "lat": 29.0883366,
+    "lon": -110.9664386
+  },
+  "tags": {
+    "amenity": "fuel"
+  }
+},
+{
+  "type": "way",
+  "id": 1346145811,
+  "center": {
+    "lat": 29.0917225,
+    "lon": -110.9710406
+  },
+  "tags": {
+    "amenity": "fuel",
+    "name": "Gasolinera San Javier"
+  }
+},
+{
+  "type": "way",
+  "id": 1502365908,
+  "center": {
+    "lat": 29.0655354,
+    "lon": -110.9688528
+  },
+  "tags": {
+    "amenity": "fuel",
+    "brand": "SMARTGAS",
+    "fuel:octane_87": "yes",
+    "fuel:octane_91": "yes",
+    "name": "SMARTGAS LEY HERMOSILLO",
+    "self_service": "no",
+    "website": "https://smartgasgasolineras.mx/index.php"
+  }
+},
+{
+  "type": "way",
+  "id": 1503656711,
+  "center": {
+    "lat": 29.0724090,
+    "lon": -110.9648735
+  },
+  "tags": {
+    "amenity": "fuel",
+    "brand": "Pemex",
+    "brand:wikidata": "Q871308",
+    "name": "El Guardian Gasolinera"
+  }
+}
+
+  ]
+}

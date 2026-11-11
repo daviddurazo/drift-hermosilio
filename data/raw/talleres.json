@@ -1,0 +1,254 @@
+{
+  "version": 0.6,
+  "generator": "Overpass API 0.7.62.11 87bfad18",
+  "osm3s": {
+    "timestamp_osm_base": "2026-11-11T03:49:53Z",
+    "copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL."
+  },
+  "elements": [
+
+{
+  "type": "node",
+  "id": 5767016075,
+  "lat": 29.0927469,
+  "lon": -110.9542417,
+  "tags": {
+    "shop": "car_repair"
+  }
+},
+{
+  "type": "way",
+  "id": 589135061,
+  "center": {
+    "lat": 29.0663348,
+    "lon": -110.9682339
+  },
+  "tags": {
+    "brand": "AutoZone",
+    "brand:wikidata": "Q4826087",
+    "brand:wikipedia": "en:AutoZone",
+    "check_date": "2026-05-29",
+    "name": "AutoZone",
+    "shop": "car_parts"
+  }
+},
+{
+  "type": "way",
+  "id": 608780232,
+  "center": {
+    "lat": 29.0925847,
+    "lon": -110.9543857
+  },
+  "tags": {
+    "addr:city": "Hermosillo",
+    "addr:housenumber": "26",
+    "addr:postcode": "83000",
+    "addr:street": "Tamaulipas",
+    "name": "CEKSA Autoclimas & Audio",
+    "opening_hours": "Mo-Fr 08:00-16:30; Sa 08:00-14:00",
+    "payment:american_express": "yes",
+    "payment:apple_pay": "yes",
+    "payment:cash": "yes",
+    "payment:credit_cards": "yes",
+    "payment:cryptocurrencies": "yes",
+    "payment:debit_cards": "yes",
+    "payment:mastercard": "yes",
+    "payment:samsung_pay": "yes",
+    "payment:visa": "yes",
+    "payment:visa_debit": "yes",
+    "service:vehicle:Camara_de_Reversa": "yes",
+    "service:vehicle:Polarizado": "yes",
+    "service:vehicle:air_conditioning": "yes",
+    "service:vehicle:alarm": "yes",
+    "service:vehicle:audio": "yes",
+    "service:vehicle:car_parts": "yes",
+    "service:vehicle:car_repair": "yes",
+    "service:vehicle:diagnostics": "yes",
+    "service:vehicle:gps": "yes",
+    "service:vehicle:multimedia": "yes",
+    "service:vehicle:security": "yes",
+    "service:vehicle:window_tinting": "yes",
+    "shop": "car_repair"
+  }
+},
+{
+  "type": "way",
+  "id": 645832819,
+  "center": {
+    "lat": 29.0870285,
+    "lon": -110.9670291
+  },
+  "tags": {
+    "brand": "Ford",
+    "brand:wikidata": "Q44294",
+    "building": "yes",
+    "name": "Ford",
+    "shop": "car"
+  }
+},
+{
+  "type": "way",
+  "id": 645832820,
+  "center": {
+    "lat": 29.0881597,
+    "lon": -110.9670294
+  },
+  "tags": {
+    "brand": "Jeep",
+    "brand:wikidata": "Q30113",
+    "brand:wikipedia": "en:Chevrolet",
+    "building": "yes",
+    "name": "Jeep",
+    "shop": "car"
+  }
+},
+{
+  "type": "way",
+  "id": 664496645,
+  "center": {
+    "lat": 29.0794657,
+    "lon": -110.9580601
+  },
+  "tags": {
+    "brand": "BMW",
+    "brand:wikidata": "Q26678",
+    "brand:wikipedia": "en:BMW",
+    "building": "yes",
+    "name": "BMW",
+    "shop": "car"
+  }
+},
+{
+  "type": "way",
+  "id": 666850946,
+  "center": {
+    "lat": 29.0697201,
+    "lon": -110.9640456
+  },
+  "tags": {
+    "brand": "Toyota",
+    "brand:wikidata": "Q53268",
+    "brand:wikipedia": "en:Toyota",
+    "landuse": "retail",
+    "name": "Toyota",
+    "shop": "car"
+  }
+},
+{
+  "type": "way",
+  "id": 913587994,
+  "center": {
+    "lat": 29.0692136,
+    "lon": -110.9635838
+  },
+  "tags": {
+    "addr:city": "Hermosillo",
+    "addr:street": "Paseo Rio Sonora Norte",
+    "brand": "Kia",
+    "brand:wikidata": "Q35349",
+    "brand:wikipedia": "en:Kia Motors",
+    "building": "yes",
+    "name": "Kia",
+    "shop": "car"
+  }
+},
+{
+  "type": "way",
+  "id": 1346144707,
+  "center": {
+    "lat": 29.0915572,
+    "lon": -110.9716360
+  },
+  "tags": {
+    "brand": "AutoZone",
+    "brand:wikidata": "Q4826087",
+    "building": "yes",
+    "name": "AutoZone",
+    "shop": "car_parts"
+  }
+},
+{
+  "type": "way",
+  "id": 1346144709,
+  "center": {
+    "lat": 29.0922965,
+    "lon": -110.9710262
+  },
+  "tags": {
+    "building": "yes",
+    "name": "O’Reilly Autopartes",
+    "shop": "car_parts"
+  }
+},
+{
+  "type": "way",
+  "id": 1346145809,
+  "center": {
+    "lat": 29.0914231,
+    "lon": -110.9709037
+  },
+  "tags": {
+    "building": "yes",
+    "name": "CRAZY MOTORS CAN-AM TALLER",
+    "shop": "car_repair"
+  }
+},
+{
+  "type": "way",
+  "id": 1346148530,
+  "center": {
+    "lat": 29.0882377,
+    "lon": -110.9673167
+  },
+  "tags": {
+    "brand": "Ram",
+    "brand:wikidata": "Q165708",
+    "building": "yes",
+    "name": "Ram",
+    "shop": "car"
+  }
+},
+{
+  "type": "way",
+  "id": 1346152341,
+  "center": {
+    "lat": 29.0907522,
+    "lon": -110.9704835
+  },
+  "tags": {
+    "building": "yes",
+    "operator": "Cruz Roja Mexicana",
+    "shop": "car_repair"
+  }
+},
+{
+  "type": "way",
+  "id": 1503656712,
+  "center": {
+    "lat": 29.0731885,
+    "lon": -110.9649823
+  },
+  "tags": {
+    "building": "yes",
+    "name": "ECONOLLANTAS",
+    "shop": "tyres",
+    "website": "https://econollantas.com"
+  }
+},
+{
+  "type": "way",
+  "id": 1503656713,
+  "center": {
+    "lat": 29.0737180,
+    "lon": -110.9650165
+  },
+  "tags": {
+    "building": "yes",
+    "name": "Michelin Grupo Ayala",
+    "operator": "Grupo Ayala",
+    "shop": "car_repair"
+  }
+}
+
+  ]
+}

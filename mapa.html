@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="es-MX">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mapa Drift Hermosillo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700&family=Inter:wght@400;500;600&display=swap">
+<style>
+  /* Visor a pantalla completa: el mapa es el contenido; paneles oscuros flotando encima. */
+  :root {
+    --panel: rgba(24, 26, 36, 0.86);
+    --panel-line: rgba(255, 255, 255, 0.10);
+    --ink: #f3ede2;
+    --ink-2: #b9b3a8;
+    --accent: #f2c14e;
+    --display: 'Chakra Petch', 'Trebuchet MS', system-ui, sans-serif;
+    --ui: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    color-scheme: dark;
+  }
+  /* lo marcado como oculto se oculta siempre, aunque su clase le ponga display */
+  [hidden] { display: none !important; }
+  html, body { height: 100%; margin: 0; background: #1d1f29; overflow: hidden; }
+  body { font-family: var(--ui); color: var(--ink); font-size: 14px; }
+  canvas { display: block; width: 100%; height: 100%; cursor: grab; touch-action: none; }
+  canvas.drag { cursor: grabbing; }
+
+  .panel { position: fixed; background: var(--panel); border: 1px solid var(--panel-line); border-radius: 10px; backdrop-filter: blur(6px); }
+  .top { top: max(12px, env(safe-area-inset-top)); left: max(12px, env(safe-area-inset-left)); padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; max-width: min(340px, calc(100vw - 24px)); }
+  .eyebrow { margin: 0; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); font-weight: 600; }
+  h1 { margin: 0; font-family: var(--display); font-weight: 700; font-size: 22px; line-height: 1.1; letter-spacing: .01em; }
+  .sub { margin: 0; color: var(--ink-2); font-size: 12.5px; line-height: 1.45; }
+  .row { display: flex; flex-wrap: wrap; gap: 6px; }
+  button { font: 500 12.5px var(--ui); color: var(--ink); background: rgba(255,255,255,0.07); border: 1px solid var(--panel-line); border-radius: 6px; padding: 6px 10px; cursor: pointer; }
+  button:hover { background: rgba(255,255,255,0.14); }
+  button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  button[aria-pressed="true"] { background: var(--accent); color: #1d1f29; border-color: var(--accent); }
+
+  .info { bottom: max(12px, env(safe-area-inset-bottom)); left: max(12px, env(safe-area-inset-left)); padding: 10px 14px; display: flex; gap: 18px; align-items: center; font-size: 12.5px; font-variant-numeric: tabular-nums; }
+  .info b { font-weight: 600; }
+  .scale { display: flex; flex-direction: column; gap: 3px; color: var(--ink-2); font-size: 11px; }
+  .scale i { display: block; height: 4px; border: 1px solid var(--ink); border-top: 0; }
+  .credit { bottom: max(12px, env(safe-area-inset-bottom)); right: max(12px, env(safe-area-inset-right)); padding: 6px 10px; font-size: 11px; color: var(--ink-2); }
+  .credit a { color: var(--ink); }
+  .zoom { top: max(12px, env(safe-area-inset-top)); right: max(12px, env(safe-area-inset-right)); padding: 6px; display: flex; flex-direction: column; gap: 6px; }
+  .zoom button { width: 34px; height: 34px; padding: 0; font-size: 18px; }
+  @media (max-width: 560px) {
+    .info { right: max(12px, env(safe-area-inset-right)); bottom: 48px; flex-wrap: wrap; gap: 10px; }
+    h1 { font-size: 19px; }
+  }
+</style>
+</head>
+<body>
+<canvas id="mapa" aria-label="Mapa en cuadrícula del centro de Hermosillo y el Cerro de la Campana"></canvas>
+
+<section class="panel top">
+  <p class="eyebrow">Drift Hermosillo · mapa 01</p>
+  <h1>Centro y Cerro de la Campana</h1>
+  <p class="sub">3.5 × 3.5 km convertidos a tiles de 3 m. Arrastra para moverte, rueda o +/− para acercar.</p>
+  <div class="row" id="lugares">
+    <button type="button" data-poi="catedral">Catedral</button>
+    <button type="button" data-poi="plaza_zaragoza">Plaza Zaragoza</button>
+    <button type="button" data-poi="campana">Cerro de la Campana</button>
+    <button type="button" data-poi="parque_madero">Parque Madero</button>
+    <button type="button" data-poi="todo">Ver todo</button>
+  </div>
+  <div class="row">
+    <button type="button" id="btn-grid" aria-pressed="false">Mostrar cuadrícula</button>
+    <button type="button" id="btn-solid" aria-pressed="false">Marcar obstáculos</button>
+  </div>
+</section>
+
+<div class="panel zoom">
+  <button type="button" id="zin" aria-label="Acercar">+</button>
+  <button type="button" id="zout" aria-label="Alejar">−</button>
+</div>
+
+<div class="panel info" aria-live="polite">
+  <div><span id="tipo"><b>—</b></span><br><span id="coord" style="color:var(--ink-2)">—</span></div>
+  <div class="scale"><span id="escala-txt">100 m</span><i id="escala-bar" style="width:60px"></i></div>
+</div>
+<div class="panel credit">Datos © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">colaboradores de OpenStreetMap</a></div>
+
+<script src="src/map.js"></script>
+<script src="src/tiles.js"></script>
+<script>
+(function () {
+  const { HmoMap, Renderer, TILE } = Hmo;
+  const map = new HmoMap(window.HMO_MAP);
+  const ren = new Renderer(map);
+  const cv = document.getElementById('mapa');
+  const ctx = cv.getContext('2d');
+
+  const LABELS = { catedral: 'Catedral', plaza_zaragoza: 'Plaza Zaragoza', campana: 'Cerro de la Campana', parque_madero: 'Parque Madero', palacio: 'Palacio Municipal' };
+
+  let dpr = 1, vw = 0, vh = 0;
+  const cam = { x: map.pois.catedral ? map.pois.catedral[0] + 120 : map.w / 2, y: map.pois.catedral ? map.pois.catedral[1] : map.h / 2, z: 0.7 };
+  let showGrid = false, showSolid = false, dirty = true, hover = null;
+
+  function resize() {
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    vw = cv.width = Math.round(innerWidth * dpr);
+    vh = cv.height = Math.round(innerHeight * dpr);
+    dirty = true;
+  }
+  addEventListener('resize', resize);
+  resize();
+
+  const scale = () => TILE * cam.z * dpr;
+  const minZ = () => Math.min(vw / (map.w * TILE * dpr), vh / (map.h * TILE * dpr)) * 0.95;
+  const clampZ = (z) => Math.max(minZ(), Math.min(4, z));
+
+  function toTile(clientX, clientY) {
+    const s = scale();
+    return { x: (clientX * dpr - vw / 2) / s + cam.x, y: (clientY * dpr - vh / 2) / s + cam.y };
+  }
+
+  function zoomAt(f, clientX, clientY) {
+    const before = toTile(clientX, clientY);
+    cam.z = clampZ(cam.z * f);
+    const after = toTile(clientX, clientY);
+    cam.x += before.x - after.x;
+    cam.y += before.y - after.y;
+    dirty = true;
+  }
+
+  // arrastre
+  let drag = null;
+  cv.addEventListener('pointerdown', (e) => { cv.setPointerCapture(e.pointerId); drag = { x: e.clientX, y: e.clientY }; cv.classList.add('drag'); });
+  cv.addEventListener('pointermove', (e) => {
+    if (drag) {
+      const s = scale();
+      cam.x -= (e.clientX - drag.x) * dpr / s;
+      cam.y -= (e.clientY - drag.y) * dpr / s;
+      drag = { x: e.clientX, y: e.clientY };
+      dirty = true;
+    }
+    const t = toTile(e.clientX, e.clientY);
+    hover = { x: Math.floor(t.x), y: Math.floor(t.y) };
+    updateInfo();
+  });
+  const endDrag = () => { drag = null; cv.classList.remove('drag'); };
+  cv.addEventListener('pointerup', endDrag);
+  cv.addEventListener('pointercancel', endDrag);
+  cv.addEventListener('wheel', (e) => { e.preventDefault(); zoomAt(Math.exp(-e.deltaY * 0.0015), e.clientX, e.clientY); }, { passive: false });
+  document.getElementById('zin').onclick = () => zoomAt(1.4, innerWidth / 2, innerHeight / 2);
+  document.getElementById('zout').onclick = () => zoomAt(1 / 1.4, innerWidth / 2, innerHeight / 2);
+
+  const keys = new Set();
+  addEventListener('keydown', (e) => { if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'a', 's', 'd'].includes(e.key)) { keys.add(e.key); e.preventDefault(); } });
+  addEventListener('keyup', (e) => keys.delete(e.key));
+
+  // lugares
+  document.querySelectorAll('[data-poi]').forEach((b) => {
+    b.onclick = () => {
+      const k = b.dataset.poi;
+      if (k === 'todo') { cam.x = map.w / 2; cam.y = map.h / 2; cam.z = minZ(); }
+      else if (map.pois[k]) { cam.x = map.pois[k][0] + 0.5; cam.y = map.pois[k][1] + 0.5; cam.z = clampZ(k === 'campana' ? 0.45 : 0.9); }
+      dirty = true;
+    };
+  });
+  const toggle = (id, set) => {
+    const b = document.getElementById(id);
+    b.onclick = () => { const v = b.getAttribute('aria-pressed') !== 'true'; b.setAttribute('aria-pressed', v); set(v); dirty = true; };
+  };
+  toggle('btn-grid', (v) => { showGrid = v; });
+  toggle('btn-solid', (v) => { showSolid = v; });
+
+  function updateInfo() {
+    const tipo = document.getElementById('tipo'), coord = document.getElementById('coord');
+    if (!hover) return;
+    const id = map.get(hover.x, hover.y);
+    tipo.firstElementChild.textContent = map.name(id) + (id >= 0 ? (map.solid(id) ? ' · obstáculo' : ' · se maneja') : '');
+    coord.textContent = `tile ${hover.x}, ${hover.y} · ${(hover.x * map.tileM).toFixed(0)} m E, ${(hover.y * map.tileM).toFixed(0)} m S`;
+  }
+
+  function updateScale() {
+    const pxPerM = scale() / dpr / map.tileM;
+    const opts = [10, 25, 50, 100, 250, 500, 1000];
+    let m = opts[0];
+    for (const o of opts) if (o * pxPerM <= 120) m = o;
+    document.getElementById('escala-txt').textContent = m >= 1000 ? (m / 1000) + ' km' : m + ' m';
+    document.getElementById('escala-bar').style.width = Math.round(m * pxPerM) + 'px';
+  }
+
+  function drawExtras() {
+    const s = scale();
+    const ox = vw / 2 - cam.x * s, oy = vh / 2 - cam.y * s;
+    const tx0 = Math.max(0, Math.floor(-ox / s)), ty0 = Math.max(0, Math.floor(-oy / s));
+    const tx1 = Math.min(map.w - 1, Math.floor((vw - ox) / s)), ty1 = Math.min(map.h - 1, Math.floor((vh - oy) / s));
+    if (showSolid && s >= 3) {
+      ctx.fillStyle = 'rgba(230, 60, 60, 0.38)';
+      for (let y = ty0; y <= ty1; y++) for (let x = tx0; x <= tx1; x++) {
+        if (map.solid(map.get(x, y))) ctx.fillRect(Math.floor(ox + x * s), Math.floor(oy + y * s), Math.ceil(s), Math.ceil(s));
+      }
+    }
+    if (showGrid && s >= 6) {
+      ctx.strokeStyle = 'rgba(20, 20, 30, 0.35)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      for (let x = tx0; x <= tx1 + 1; x++) { const px = Math.round(ox + x * s) + 0.5; ctx.moveTo(px, 0); ctx.lineTo(px, vh); }
+      for (let y = ty0; y <= ty1 + 1; y++) { const py = Math.round(oy + y * s) + 0.5; ctx.moveTo(0, py); ctx.lineTo(vw, py); }
+      ctx.stroke();
+    }
+    // etiquetas de lugares
+    ctx.font = `600 ${Math.round(12 * dpr)}px Inter, system-ui, sans-serif`;
+    ctx.textBaseline = 'middle';
+    for (const k in LABELS) {
+      const p = map.pois[k];
+      if (!p) continue;
+      const x = ox + (p[0] + 0.5) * s, y = oy + (p[1] + 0.5) * s;
+      if (x < -200 || y < -50 || x > vw + 200 || y > vh + 50) continue;
+      const txt = LABELS[k];
+      const tw = ctx.measureText(txt).width;
+      const pad = 7 * dpr, h = 22 * dpr;
+      ctx.fillStyle = 'rgba(24, 26, 36, 0.88)';
+      ctx.beginPath();
+      ctx.roundRect(x - tw / 2 - pad, y - h - 8 * dpr, tw + pad * 2, h, 5 * dpr);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(x - 5 * dpr, y - 8 * dpr); ctx.lineTo(x + 5 * dpr, y - 8 * dpr); ctx.lineTo(x, y - 2 * dpr); ctx.fill();
+      ctx.fillStyle = '#f3ede2';
+      ctx.fillText(txt, x - tw / 2, y - h / 2 - 8 * dpr);
+    }
+    // hover
+    if (hover && s >= 6) {
+      ctx.strokeStyle = '#f2c14e';
+      ctx.lineWidth = 2 * dpr;
+      ctx.strokeRect(Math.round(ox + hover.x * s), Math.round(oy + hover.y * s), Math.round(s), Math.round(s));
+    }
+  }
+
+  let last = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.05, (now - last) / 1000);
+    last = now;
+    if (keys.size) {
+      const sp = 900 / (TILE * cam.z) * dt;
+      if (keys.has('ArrowLeft') || keys.has('a')) cam.x -= sp;
+      if (keys.has('ArrowRight') || keys.has('d')) cam.x += sp;
+      if (keys.has('ArrowUp') || keys.has('w')) cam.y -= sp;
+      if (keys.has('ArrowDown') || keys.has('s')) cam.y += sp;
+      dirty = true;
+    }
+    cam.x = Math.max(0, Math.min(map.w, cam.x));
+    cam.y = Math.max(0, Math.min(map.h, cam.y));
+    if (dirty) {
+      const done = ren.draw(ctx, cam.x, cam.y, scale(), vw, vh, 6);
+      drawExtras();
+      updateScale();
+      dirty = !done;
+      if (!done) dirty = true;
+    }
+    requestAnimationFrame(frame);
+  }
+  // redibuja al mover el cursor (para el recuadro de hover)
+  cv.addEventListener('pointermove', () => { dirty = true; });
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

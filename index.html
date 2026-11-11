@@ -1,0 +1,434 @@
+<!doctype html>
+<html lang="es-MX">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Drift Hermosillo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700&family=Inter:wght@400;500;600&display=swap">
+<style>
+  /* Juego a pantalla completa; HUD en paneles oscuros en las esquinas. */
+  :root {
+    --panel: rgba(24, 26, 36, 0.86);
+    --panel-line: rgba(255, 255, 255, 0.10);
+    --ink: #f3ede2;
+    --ink-2: #b9b3a8;
+    --accent: #f2c14e;
+    --hot: #e4572e;
+    --display: 'Chakra Petch', 'Trebuchet MS', system-ui, sans-serif;
+    --ui: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    color-scheme: dark;
+  }
+  /* lo marcado como oculto se oculta siempre, aunque su clase le ponga display */
+  [hidden] { display: none !important; }
+  html, body { height: 100%; margin: 0; background: #1d1f29; overflow: hidden; }
+  body { font-family: var(--ui); color: var(--ink); font-size: 14px; user-select: none; }
+  canvas { display: block; width: 100%; height: 100%; }
+
+  .panel { position: fixed; background: var(--panel); border: 1px solid var(--panel-line); border-radius: 10px; backdrop-filter: blur(6px); }
+  .eyebrow { margin: 0; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); font-weight: 600; }
+  .row { display: flex; flex-wrap: wrap; gap: 6px; }
+  button { font: 500 12.5px var(--ui); color: var(--ink); background: rgba(255,255,255,0.07); border: 1px solid var(--panel-line); border-radius: 6px; padding: 6px 10px; cursor: pointer; }
+  button:hover { background: rgba(255,255,255,0.14); }
+  button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  button[aria-pressed="true"] { background: var(--accent); color: #1d1f29; border-color: var(--accent); }
+  kbd { font: 600 11px var(--ui); background: rgba(255,255,255,0.1); border: 1px solid var(--panel-line); border-bottom-width: 2px; border-radius: 4px; padding: 1px 5px; color: var(--ink); }
+
+  .carro { top: max(12px, env(safe-area-inset-top)); left: max(12px, env(safe-area-inset-left)); padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; max-width: min(320px, calc(100vw - 24px)); }
+  .carro h1 { margin: 0; font-family: var(--display); font-weight: 700; font-size: 26px; line-height: 1; }
+  .carro .tag { margin: 0; color: var(--ink-2); font-size: 12.5px; }
+  .carro .datos { margin: 0; font-size: 12px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+
+  .derecha { position: fixed; top: max(12px, env(safe-area-inset-top)); right: max(12px, env(safe-area-inset-right)); display: flex; flex-direction: column; align-items: flex-end; gap: 10px; max-width: calc(100vw - 24px); }
+  .derecha .panel { position: static; }
+  .opciones { padding: 8px; display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+  .mini { padding: 6px; display: flex; flex-direction: column; gap: 8px; }
+  .mini canvas { display: block; width: 180px; height: 180px; border-radius: 6px; cursor: pointer; }
+  .gas { display: flex; flex-direction: column; gap: 4px; padding: 0 4px 3px; font-size: 12px; color: var(--ink-2); }
+  .gas-top { display: flex; justify-content: space-between; font-variant-numeric: tabular-nums; }
+  .gas-top b { color: var(--ink); font-weight: 600; }
+  .gas .barra i { background: #7fc77a; }
+  .gas .barra i[data-nivel="bajo"] { background: var(--accent); }
+  .gas .barra i[data-nivel="reserva"] { background: var(--hot); }
+  .gas-msg { margin: 0; font-size: 11.5px; line-height: 1.35; color: var(--ink); }
+  .gas-msg:empty { display: none; }
+  /* el texto no ensancha el panel: el ancho lo pone el minimapa */
+  .gas, .ruta { width: 0; min-width: 100%; box-sizing: border-box; }
+  .ruta { display: flex; flex-direction: column; gap: 6px; padding: 0 4px 4px; }
+  .ruta-info { margin: 0; font-size: 12px; font-weight: 600; color: #3fc5f0; font-variant-numeric: tabular-nums; }
+  .ruta-info:empty { display: none; }
+  .ruta button { padding: 5px 8px; font-size: 12px; }
+  .ruta kbd { font-size: 10px; padding: 0 4px; }
+  /* mapa completo: tapa el juego; paneles flotando encima */
+  .mapa-completo { position: fixed; inset: 0; z-index: 20; background: #1d1f29; }
+  .mapa-completo canvas { display: block; width: 100%; height: 100%; cursor: grab; touch-action: none; }
+  .mapa-completo canvas:active { cursor: grabbing; }
+  .mc-top { top: max(12px, env(safe-area-inset-top)); left: max(12px, env(safe-area-inset-left)); padding: 12px 16px; display: flex; flex-direction: column; gap: 4px; max-width: min(360px, calc(100vw - 24px)); }
+  .mc-top h2 { margin: 0; font-family: var(--display); font-weight: 700; font-size: 20px; line-height: 1.1; }
+  .mc-hint { margin: 0; font-size: 12.5px; color: var(--ink-2); line-height: 1.4; }
+  .mc-botones { top: max(12px, env(safe-area-inset-top)); right: max(12px, env(safe-area-inset-right)); padding: 8px; display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; max-width: calc(100vw - 24px); }
+  .mc-botones button[aria-label] { width: 34px; padding: 6px 0; font-size: 16px; }
+  .mc-leyenda { bottom: max(12px, env(safe-area-inset-bottom)); left: max(12px, env(safe-area-inset-left)); padding: 8px 12px; display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--ink-2); max-width: calc(100vw - 24px); }
+  .mc-leyenda span { display: flex; align-items: center; gap: 6px; }
+  .ley { display: inline-block; width: 12px; height: 12px; border-radius: 3px; font: 700 9px/12px var(--ui); text-align: center; color: #fff; font-style: normal; }
+  .ley-carro { background: #e4572e; clip-path: polygon(100% 50%, 0 0, 25% 50%, 0 100%); border-radius: 0; }
+  .ley-casa { background: #7fc77a; clip-path: polygon(50% 0, 100% 45%, 85% 45%, 85% 100%, 15% 100%, 15% 45%, 0 45%); border-radius: 0; }
+  .ley-gas { background: #4aa3c4; }
+  .ley-taller { background: #e4572e; }
+  .ley-meet { background: #8b5cf6; border-radius: 50%; }
+  .ley-ruta { height: 3px; width: 18px; background: #3fc5f0; border-radius: 2px; }
+  .mc-card { bottom: max(12px, env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; width: min(420px, calc(100vw - 24px)); box-sizing: border-box; }
+  .mc-card h3 { margin: 0; font-family: var(--display); font-size: 20px; font-weight: 700; line-height: 1.15; text-wrap: balance; }
+  .mc-sub { margin: 0 0 4px; font-size: 12.5px; color: var(--ink-2); }
+  button.primary { background: #3fc5f0; color: #10202a; border-color: #3fc5f0; font-weight: 600; }
+  button.primary:hover { background: #6fd5f5; }
+  @media (max-width: 700px) { .mc-leyenda { display: none; } }
+  /* HUD: dinero y Street XP */
+  .hud-stats { display: flex; gap: 18px; font-variant-numeric: tabular-nums; }
+  .hud-stats div { display: flex; flex-direction: column; gap: 1px; }
+  .hud-stats span { font-size: 11px; color: var(--ink-2); text-transform: uppercase; letter-spacing: .08em; }
+  .hud-stats b { font-family: var(--display); font-size: 18px; }
+  .barra.xp i { background: #b583ff; }
+
+  /* combo de drift */
+  .drift-hud { position: fixed; top: max(70px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 2px; pointer-events: none; text-shadow: 0 2px 6px rgba(0,0,0,0.6); }
+  .drift-hud b { font-family: var(--display); font-size: 40px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; color: #fff; }
+  .drift-hud span { font-family: var(--display); font-size: 18px; color: var(--accent); font-weight: 700; }
+  .drift-grace { width: 120px; height: 4px; }
+  .drift-grace i { background: var(--accent); }
+  .drift-pop { position: fixed; top: max(130px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); font-family: var(--display); font-weight: 700; font-size: 26px; pointer-events: none; text-shadow: 0 2px 6px rgba(0,0,0,0.7); }
+  .drift-pop[data-tipo="bank"] { color: #7fc77a; }
+  .drift-pop[data-tipo="fail"] { color: var(--hot); }
+  .drift-pop[data-tipo="xp"] { color: #b583ff; }
+  .prompt { bottom: max(150px, env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); padding: 10px 16px; font-weight: 600; font-size: 14px; white-space: nowrap; }
+
+  /* pantallas de taller y tienda */
+  .pantalla { position: fixed; inset: 0; z-index: 25; background: radial-gradient(ellipse at 50% 30%, #2a2d3c 0%, #15171f 70%); overflow-y: auto; }
+  .pant-in { max-width: 1100px; margin: 0 auto; padding-block: max(20px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-bottom)); padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(16px, env(safe-area-inset-right)); display: flex; flex-direction: column; gap: 18px; min-height: 100%; box-sizing: border-box; }
+  .pant-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px; }
+  .pant-head h1 { margin: 2px 0 0; font-family: var(--display); font-size: clamp(24px, 4vw, 36px); line-height: 1.05; text-wrap: balance; }
+  .pant-sub { margin: 4px 0 0; color: var(--ink-2); font-size: 13px; line-height: 1.45; }
+  .t-stats { display: flex; flex-wrap: wrap; gap: 22px; align-items: flex-end; font-variant-numeric: tabular-nums; }
+  .t-stats > div { display: flex; flex-direction: column; gap: 2px; }
+  .t-stats span { font-size: 11px; color: var(--ink-2); text-transform: uppercase; letter-spacing: .08em; }
+  .t-stats b { font-family: var(--display); font-size: 22px; }
+  .t-xp { min-width: 160px; }
+  .t-xp .barra i { background: #b583ff; }
+  .t-xp small { color: var(--ink-2); font-size: 11px; }
+  .taller-body, .tienda-body { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 22px; }
+  @media (max-width: 760px) { .taller-body, .tienda-body { grid-template-columns: 1fr; } }
+  .t-show, .t-side { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+  .t-show h2 { margin: 0; font-family: var(--display); font-size: 26px; }
+  .vitrina { position: relative; overflow: hidden; width: 100%; height: clamp(230px, 34vh, 340px); background: radial-gradient(ellipse at 50% 55%, rgba(242,193,78,0.12), transparent 70%), repeating-linear-gradient(90deg, rgba(255,255,255,0.03) 0 1px, transparent 1px 28px), repeating-linear-gradient(0deg, rgba(255,255,255,0.03) 0 1px, transparent 1px 28px); border: 1px solid var(--panel-line); border-radius: 10px; }
+  .vitrina-grande { height: clamp(260px, 46vh, 480px); }
+  .vitrina canvas { touch-action: pan-y; cursor: grab; }
+  .vitrina canvas.arrastrando { cursor: grabbing; }
+  .v-flecha { position: absolute; top: 50%; transform: translateY(-50%); width: 40px; height: 40px; padding: 0; border-radius: 50%; font: 700 22px/1 var(--display); background: rgba(16, 18, 26, 0.7); }
+  .v-flecha:disabled { opacity: 0.2; }
+  .v-izq { left: 10px; }
+  .v-der { right: 10px; }
+  .v-puntos { position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%); display: flex; }
+  .v-puntos button { width: 22px; height: 22px; padding: 0; border: 0; background: none; display: grid; place-items: center; }
+  .v-puntos button::before { content: ''; width: 8px; height: 8px; border-radius: 4px; background: rgba(255, 255, 255, 0.28); transition: width .2s; }
+  .v-puntos button[aria-current="true"]::before { width: 18px; background: var(--accent); }
+  .v-puntos button:hover { background: none; }
+  .v-badge { position: absolute; top: 10px; left: 12px; margin: 0; padding: 4px 9px; border-radius: 6px; background: rgba(10, 11, 16, 0.6); font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; pointer-events: none; }
+  .v-badge[data-tipo="uso"] { color: var(--accent); }
+  .v-badge[data-tipo="bloqueado"] { color: var(--ink-2); }
+  .t-titulo { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px 16px; }
+  .perf { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 18px; }
+  .perf-row { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--ink-2); }
+  .perf-top { display: flex; justify-content: space-between; font-variant-numeric: tabular-nums; }
+  .perf-top b { color: var(--ink); font-weight: 600; }
+  .perf .barra { position: relative; }
+  .perf .barra i { background: var(--accent); position: absolute; left: 0; top: 0; }
+  .perf .barra i[data-change="up"] { background: #7fc77a; }
+  .perf .barra i[data-change="down"] { background: var(--hot); }
+  .perf .barra i.ghost { background: var(--accent); }
+  .pint-label { margin: 6px 0 0; font-size: 11px; color: var(--ink-2); text-transform: uppercase; letter-spacing: .1em; font-weight: 600; }
+  .t-meet { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px; padding: 14px 16px; border: 1px solid rgba(181,131,255,0.55); border-radius: 10px; background: rgba(139,92,246,0.12); }
+  .t-meet .eyebrow { color: #b583ff; }
+  .t-meet-txt { margin: 2px 0 0; font-family: var(--display); font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .t-piezas { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
+  .t-piezas li { display: flex; justify-content: space-between; gap: 10px; border-bottom: 1px solid var(--panel-line); padding: 4px 0; }
+  .t-piezas li span { color: var(--ink-2); }
+  .pant-foot { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: auto; }
+  .pant-foot .spacer { flex: 1; }
+  button.grande { font-size: 16px; padding: 12px 22px; font-family: var(--display); }
+  button.peligro { border-color: rgba(228,87,46,0.6); color: #ffb8a3; }
+  button:disabled { opacity: 0.45; cursor: not-allowed; }
+  .confirmar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; width: 100%; padding: 10px 12px; border: 1px solid rgba(228,87,46,0.6); border-radius: 8px; font-size: 13px; }
+  .tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+  .opciones-lista { display: flex; flex-direction: column; gap: 8px; }
+  .opcion { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; border: 1px solid var(--panel-line); border-radius: 8px; background: rgba(255,255,255,0.03); }
+  .opcion:hover { background: rgba(255,255,255,0.06); }
+  .opcion-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .opcion-info b { font-size: 14px; }
+  .opcion-info span { font-size: 12px; color: var(--ink-2); }
+  .opcion button { white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .pintura { display: flex; flex-direction: column; gap: 8px; }
+  .swatches { display: flex; flex-wrap: wrap; gap: 6px; }
+  .swatch { width: 30px; height: 30px; padding: 0; border-radius: 50%; border: 2px solid rgba(255,255,255,0.25); }
+  .swatch[aria-pressed="true"] { border-color: #fff; box-shadow: 0 0 0 2px var(--accent); }
+  .pint-act { margin-top: 6px; }
+
+  .fundido { position: fixed; inset: 0; z-index: 28; background: #0d0f16; display: flex; align-items: center; justify-content: center; }
+  .fundido p { font-family: var(--display); font-size: 22px; font-weight: 700; color: var(--accent); }
+  #btn-grua { margin-top: 4px; border-color: rgba(242,193,78,0.6); }
+  .aviso { z-index: 30; position: fixed; top: max(16px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); background: var(--panel); border: 1px solid rgba(63,197,240,0.5); color: var(--ink); border-radius: 8px; padding: 8px 14px; font-weight: 600; font-size: 13px; white-space: nowrap; max-width: calc(100vw - 24px); overflow: hidden; text-overflow: ellipsis; }
+
+  .tablero { bottom: max(12px, env(safe-area-inset-bottom)); right: max(12px, env(safe-area-inset-right)); padding: 12px 16px 14px; display: flex; flex-direction: column; gap: 8px; min-width: 200px; }
+  .vel { display: flex; align-items: baseline; gap: 6px; font-family: var(--display); font-variant-numeric: tabular-nums; }
+  .vel b { font-size: 46px; font-weight: 700; line-height: 1; min-width: 3ch; text-align: right; }
+  .vel span { font-size: 14px; color: var(--ink-2); }
+  .drift { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--ink-2); }
+  .drift-top { display: flex; justify-content: space-between; font-variant-numeric: tabular-nums; }
+  .drift-top b { color: var(--ink); font-weight: 600; }
+  .barra { height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; }
+  .barra i { display: block; height: 100%; width: 0; background: var(--ink-2); border-radius: 3px; }
+  .barra i[data-on="1"] { background: var(--hot); }
+  .sup { font-size: 12px; color: var(--ink-2); }
+  .calle-row { color: var(--ink); font-weight: 600; font-size: 13px; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  .ayuda { bottom: max(12px, env(safe-area-inset-bottom)); left: max(12px, env(safe-area-inset-left)); padding: 12px 14px; font-size: 12.5px; line-height: 1.9; }
+  .ayuda dl { margin: 0; display: grid; grid-template-columns: auto auto; gap: 0 14px; }
+  .ayuda dt { white-space: nowrap; }
+  .ayuda dd { margin: 0; color: var(--ink-2); }
+  .credit { position: fixed; bottom: 2px; left: 50%; transform: translateX(-50%); font-size: 10.5px; color: rgba(255,255,255,0.55); text-shadow: 0 1px 2px rgba(0,0,0,0.6); white-space: nowrap; }
+  .credit a { color: inherit; }
+  @media (max-width: 700px) {
+    .ayuda { display: none; }
+    .carro h1 { font-size: 20px; }
+    .vel b { font-size: 34px; }
+  }
+</style>
+</head>
+<body>
+<canvas id="juego" aria-label="Juego de drift en el centro de Hermosillo"></canvas>
+
+<section class="panel carro">
+  <p class="eyebrow">Drift Hermosillo</p>
+  <h1 id="carro-nombre">—</h1>
+  <p class="datos" id="carro-datos">—</p>
+  <div class="hud-stats">
+    <div><span>Dinero</span><b id="hud-dinero">$0</b></div>
+    <div><span>Street XP</span><b id="hud-nivel">Nivel 1</b></div>
+  </div>
+  <div class="barra xp" title="Street XP"><i id="hud-xpbar"></i></div>
+</section>
+
+<!-- combo de drift -->
+<div class="drift-hud" id="drift-hud" aria-live="off" hidden>
+  <b id="drift-pts">0</b>
+  <span id="drift-mult">x1</span>
+  <div class="barra drift-grace"><i id="drift-grace"></i></div>
+</div>
+<div class="drift-pop" id="drift-pop" hidden></div>
+<div class="panel prompt" id="prompt" hidden></div>
+
+<div class="derecha">
+  <div class="panel opciones">
+    <button type="button" id="btn-cam" aria-pressed="true">Cámara: gira con el carro</button>
+    <button type="button" id="btn-reset">Reiniciar en la calle</button>
+    <button type="button" id="btn-ayuda">Controles</button>
+  </div>
+  <div class="panel mini">
+    <canvas id="minimapa" role="img" aria-label="Minimapa centrado en tu carro" title="Minimapa · clic o M para agrandar"></canvas>
+    <div class="gas" aria-label="Gasolina">
+      <div class="gas-top"><span>Gasolina</span><b id="gas-l">— L</b></div>
+      <div class="barra"><i id="gas-bar"></i></div>
+      <p class="gas-msg" id="gas-msg"></p>
+      <button type="button" id="btn-grua" hidden>Llamar grúa · $300 <kbd>T</kbd></button>
+    </div>
+    <div class="ruta">
+      <p class="ruta-info" id="ruta-info"></p>
+      <div class="row">
+        <button type="button" id="btn-gas">Gasolinera <kbd>G</kbd></button>
+        <button type="button" id="btn-mapa">Mapa <kbd>M</kbd></button>
+        <button type="button" id="btn-casa">Casa <kbd>K</kbd></button>
+        <button type="button" id="btn-poner-casa">Poner casa</button>
+        <button type="button" id="btn-quitar" hidden>Quitar ruta <kbd>X</kbd></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<section class="panel ayuda" id="ayuda" aria-label="Controles">
+  <dl>
+    <dt><kbd>W</kbd> <kbd>↑</kbd></dt><dd>Acelerar</dd>
+    <dt><kbd>S</kbd> <kbd>↓</kbd></dt><dd>Frenar / reversa</dd>
+    <dt><kbd>A</kbd> <kbd>D</kbd> <kbd>←</kbd> <kbd>→</kbd></dt><dd>Volante</dd>
+    <dt><kbd>Espacio</kbd></dt><dd>Freno de mano</dd>
+    <dt><kbd>C</kbd></dt><dd>Cambiar cámara</dd>
+    <dt><kbd>R</kbd></dt><dd>Volver a la calle</dd>
+    <dt><kbd>E</kbd></dt><dd>Entrar a tu casa o a un taller; en un meet, dejar el carro</dd>
+    <dt><kbd>T</kbd></dt><dd>Llamar grúa ($300)</dd>
+    <dt><kbd>G</kbd></dt><dd>Ruta a la gasolinera más cercana</dd>
+    <dt><kbd>M</kbd></dt><dd>Mapa completo (elegir destino o casa)</dd>
+    <dt><kbd>X</kbd></dt><dd>Quitar ruta</dd>
+    <dt><kbd>K</kbd></dt><dd>Ruta a tu casa</dd>
+    <dt>Gasolinera</dt><dd>Detente en un lugar amarillo ($24/L)</dd>
+    <dt>Meet</dt><dd>Estaciónate en el círculo morado: Street XP por minuto</dd>
+    <dt><kbd>H</kbd></dt><dd>Ocultar esta ayuda</dd>
+  </dl>
+</section>
+
+<section class="panel tablero" aria-label="Tablero">
+  <div class="vel"><b id="vel">0</b><span>km/h</span></div>
+  <div class="drift">
+    <div class="drift-top"><span>Ángulo de derrape</span><b id="angulo">0°</b></div>
+    <div class="barra"><i id="angulo-bar"></i></div>
+  </div>
+  <div class="sup calle-row"><span id="calle">—</span></div>
+  <div class="sup">Superficie: <span id="superficie">—</span></div>
+</section>
+
+<section class="mapa-completo" id="mapa-completo" aria-label="Mapa completo" hidden>
+  <canvas id="mapa-full"></canvas>
+  <header class="panel mc-top">
+    <p class="eyebrow">Mapa</p>
+    <h2>Centro y Cerro de la Campana</h2>
+    <p class="mc-hint" id="mc-hint"></p>
+  </header>
+  <div class="panel mc-botones">
+    <button type="button" id="mc-mas" aria-label="Acercar">+</button>
+    <button type="button" id="mc-menos" aria-label="Alejar">−</button>
+    <button type="button" id="mc-centrar">Mi carro</button>
+    <button type="button" id="mc-cerrar">Cerrar <kbd>Esc</kbd></button>
+  </div>
+  <div class="panel mc-leyenda" aria-label="Leyenda">
+    <span><i class="ley ley-carro"></i>Tu carro</span>
+    <span><i class="ley ley-casa"></i>Tu casa</span>
+    <span><i class="ley ley-gas">G</i>Gasolinera</span>
+    <span><i class="ley ley-taller">T</i>Taller</span>
+    <span><i class="ley ley-meet">M</i>Meet</span>
+    <span><i class="ley ley-ruta"></i>Ruta</span>
+  </div>
+  <div class="panel mc-card" id="mc-card" hidden>
+    <p class="eyebrow" id="mc-kind">Calle</p>
+    <h3 id="mc-title">—</h3>
+    <p class="mc-sub" id="mc-sub"></p>
+    <div class="row">
+      <button type="button" id="mc-ir" class="primary">Ir aquí</button>
+      <button type="button" id="mc-casa">Poner mi casa aquí</button>
+      <button type="button" id="mc-cancelar">Cancelar</button>
+    </div>
+  </div>
+</section>
+
+<section class="pantalla" id="taller" aria-label="Tu taller" hidden>
+  <div class="pant-in taller-in">
+    <header class="pant-head">
+      <div>
+        <p class="eyebrow">Tu taller</p>
+        <h1 id="t-dir">—</h1>
+        <p class="pant-sub" id="t-sincasa" hidden>Elige dónde vives: ahí vas a aparecer cada vez que salgas a manejar.</p>
+      </div>
+      <div class="t-stats">
+        <div><span>Dinero</span><b id="t-dinero">$0</b></div>
+        <div class="t-xp"><span>Street XP</span><b id="t-nivel">Nivel 1</b><div class="barra"><i id="t-xpbar"></i></div><small id="t-xp"></small></div>
+        <div><span>Mejor combo</span><b id="t-combo">0</b></div>
+      </div>
+    </header>
+    <div class="t-meet" id="t-meet" hidden>
+      <div>
+        <p class="eyebrow">En el meet</p>
+        <p class="t-meet-txt" id="t-meet-txt">—</p>
+        <p class="pant-sub" id="t-meet-sub">—</p>
+      </div>
+      <button type="button" id="t-recoger" class="primary grande">Recoger carro</button>
+    </div>
+    <div id="t-carro" class="vitrina vitrina-grande"></div>
+    <div class="taller-body">
+      <div class="t-show">
+        <div class="t-titulo">
+          <div>
+            <h2 id="t-nombre">—</h2>
+            <p class="pant-sub" id="t-tag"></p>
+          </div>
+          <button type="button" id="t-comprar" class="primary grande" hidden>Comprar</button>
+        </div>
+        <div id="t-perf"></div>
+      </div>
+      <div class="t-side">
+        <p class="pint-label">Piezas instaladas</p>
+        <ul class="t-piezas" id="t-piezas"></ul>
+        <p class="pant-sub">Las piezas se compran en los talleres de la ciudad (llave inglesa en el mapa).</p>
+      </div>
+    </div>
+    <footer class="pant-foot">
+      <button type="button" id="t-manejar" class="primary grande">Salir a manejar</button>
+      <button type="button" id="t-casa">Cambiar casa</button>
+      <button type="button" id="t-bidon" hidden>Bidón de emergencia (gratis)</button>
+      <span class="spacer"></span>
+      <button type="button" id="t-borrar" class="peligro">Borrar partida</button>
+      <div class="confirmar" id="t-confirmar" hidden>
+        <span>¿Borrar todo tu progreso? No se puede deshacer.</span>
+        <button type="button" id="t-borrar-si" class="peligro">Sí, borrar</button>
+        <button type="button" id="t-borrar-no">Cancelar</button>
+      </div>
+    </footer>
+  </div>
+</section>
+
+<section class="pantalla" id="tienda" aria-label="Taller de tuneo" hidden>
+  <div class="pant-in tienda-in">
+    <header class="pant-head">
+      <div>
+        <p class="eyebrow" id="s-tipo">Taller</p>
+        <h1 id="s-nombre">—</h1>
+        <p class="pant-sub">Tuneando: <b id="s-carro">—</b></p>
+      </div>
+      <div class="t-stats">
+        <div><span>Dinero</span><b id="s-dinero">$0</b></div>
+        <button type="button" id="s-salir">Salir del taller <kbd>Esc</kbd></button>
+      </div>
+    </header>
+    <div class="tienda-body">
+      <div class="t-show">
+        <div id="s-vista" class="vitrina"></div>
+        <div id="s-perf"></div>
+      </div>
+      <div class="t-side">
+        <div class="tabs" id="s-tabs" role="group" aria-label="Categorías"></div>
+        <div id="s-opciones" class="opciones-lista"></div>
+        <p class="pant-sub" id="s-nota"></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="fundido" id="fundido" hidden><p id="fundido-txt">La grúa va en camino…</p></div>
+<div class="aviso" id="aviso" role="status" hidden></div>
+<div class="credit">Mapa © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">colaboradores de OpenStreetMap</a></div>
+
+<script src="src/map.js"></script>
+<script src="src/tiles.js"></script>
+<script src="src/cars.js"></script>
+<script src="src/model3d.js"></script>
+<script src="src/showroom.js"></script>
+<script src="src/physics.js"></script>
+<script src="src/route.js"></script>
+<script src="src/night.js"></script>
+<script src="src/streets.js"></script>
+<script src="src/fullmap.js"></script>
+<script src="src/progress.js"></script>
+<script src="src/tuning.js"></script>
+<script src="src/drift.js"></script>
+<script src="src/menus.js"></script>
+<script src="src/game/core.js"></script>
+<script src="src/game/input.js"></script>
+<script src="src/game/camera.js"></script>
+<script src="src/game/effects.js"></script>
+<script src="src/game/fuel.js"></script>
+<script src="src/game/nav.js"></script>
+<script src="src/game/score.js"></script>
+<script src="src/game/shops.js"></script>
+<script src="src/game/meets.js"></script>
+<script src="src/game/screens.js"></script>
+<script src="src/game/maps.js"></script>
+<script src="src/game/draw.js"></script>
+<script src="src/game/hud.js"></script>
+<script src="src/game.js"></script>
+</body>
+</html>

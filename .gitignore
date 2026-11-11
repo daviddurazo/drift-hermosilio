@@ -1,0 +1,12 @@
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+
+# vistas previas que genera tools/build_map.py
+preview*.png
+
+# ajustes locales de Claude Code
+.claude/settings.local.json
