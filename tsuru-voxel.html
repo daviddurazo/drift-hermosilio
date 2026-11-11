@@ -1,0 +1,774 @@
+<title>Tsuru en Vóxeles</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: garage scene fills the screen; one floating control card (left on desktop, bottom sheet on phones). Single dark look by choice. */
+:root{
+  --bg:#121319;
+  --panel:rgba(22,23,31,.88);
+  --line:#2d2f3c;
+  --fg:#ecebf3;
+  --muted:#9b99ad;
+  --chip:#1e1f29;
+  --accent:#ffa630;      /* amber, like the Tsuru's corner lamp */
+  --accent-ink:#1d1305;
+  --font-display:"Chakra Petch","Inter",system-ui,sans-serif;
+  --font-body:"Inter",system-ui,-apple-system,sans-serif;
+  --font-mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+  color-scheme:dark;
+}
+html,body{height:100%}
+body{background:var(--bg);color:var(--fg);font-family:var(--font-body);overflow:hidden}
+#stage{position:fixed;inset:0}
+#stage canvas{display:block;width:100%;height:100%;touch-action:none}
+.panel{
+  position:absolute;
+  top:calc(16px + env(safe-area-inset-top,0px));
+  left:max(16px, env(safe-area-inset-left,0px));
+  width:300px;max-height:calc(100% - 32px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));
+  overflow:auto;
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:14px;
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  padding:18px 18px 16px;
+  display:flex;flex-direction:column;gap:18px;
+}
+.eyebrow{margin:0;font:500 11px/1 var(--font-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--accent)}
+h1{margin:6px 0 0;font:700 26px/1.05 var(--font-display);letter-spacing:.01em;text-wrap:balance}
+.stats{margin:8px 0 0;font:400 12px/1.5 var(--font-mono);color:var(--muted);font-variant-numeric:tabular-nums}
+section{display:flex;flex-direction:column;gap:10px}
+h2{margin:0;font:600 11px/1 var(--font-display);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.swatches{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.sw{aspect-ratio:1;max-width:100%;border-radius:8px;border:2px solid transparent;cursor:pointer;padding:0;box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}
+.sw[aria-pressed="true"]{border-color:var(--accent)}
+.sw:focus-visible,.btn:focus-visible,.seg button:focus-visible,.tg input:focus-visible+span{outline:2px solid var(--accent);outline-offset:2px}
+.picker{display:flex;align-items:center;justify-content:space-between;font-size:13px;color:var(--muted)}
+.picker input{width:44px;height:28px;border:1px solid var(--line);border-radius:6px;background:var(--chip);padding:2px;cursor:pointer}
+.toggles{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.tg{position:relative;display:block;cursor:pointer}
+.tg input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer}
+.tg span{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;background:var(--chip);border:1px solid var(--line);font-size:13px;color:var(--muted);user-select:none}
+.tg span::before{content:"";width:8px;height:8px;border-radius:2px;background:var(--line);flex:none}
+.tg input:checked+span{color:var(--fg);border-color:#4a4537}
+.tg input:checked+span::before{background:var(--accent);box-shadow:0 0 8px var(--accent)}
+.seg{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;background:var(--chip);border:1px solid var(--line);border-radius:9px;padding:3px}
+.seg button{border:0;background:transparent;color:var(--muted);font:500 12px/1 var(--font-body);padding:8px 0;border-radius:6px;cursor:pointer}
+.seg button:hover{color:var(--fg)}
+.seg button[aria-pressed="true"]{background:var(--line);color:var(--fg)}
+.btn{border:1px solid var(--line);background:var(--chip);color:var(--fg);font:600 13px/1 var(--font-body);padding:11px 12px;border-radius:9px;cursor:pointer;text-align:center}
+.btn:hover{border-color:#4a4c5c}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{filter:brightness(1.06)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.note{margin:0;font-size:12px;line-height:1.5;color:var(--muted)}
+.note code{font-family:var(--font-mono);font-size:11px;color:var(--fg)}
+.status{margin:0;min-height:1em;font:400 12px/1.4 var(--font-mono);color:var(--accent)}
+.hint{
+  position:absolute;right:max(16px, env(safe-area-inset-right,0px));bottom:calc(14px + env(safe-area-inset-bottom,0px));
+  font:400 11px/1 var(--font-mono);color:var(--muted);letter-spacing:.04em;pointer-events:none
+}
+@media (max-width:640px){
+  .panel{top:auto;left:max(16px, env(safe-area-inset-left,0px));right:max(16px, env(safe-area-inset-right,0px));width:auto;
+    bottom:calc(16px + env(safe-area-inset-bottom,0px));max-height:46%;padding:14px;gap:14px}
+  h1{font-size:21px}
+  .hint{display:none}
+}
+@media (prefers-reduced-motion:reduce){ .btn,.sw{transition:none} }
+</style>
+
+<div id="stage"></div>
+
+<aside class="panel" aria-label="Controles del modelo">
+  <header>
+    <p class="eyebrow">Nissan Tsuru · B13</p>
+    <h1>Tsuru en vóxeles</h1>
+    <p class="stats" id="stats">Armando el modelo…</p>
+  </header>
+
+  <section>
+    <h2>Pintura</h2>
+    <div class="swatches" id="swatches"></div>
+    <label class="picker" for="customColor">Otro color <input type="color" id="customColor" value="#b9bec4"></label>
+  </section>
+
+  <section>
+    <h2>Detalles</h2>
+    <div class="toggles">
+      <label class="tg"><input type="checkbox" id="tgGrid"><span>Cuadrícula</span></label>
+      <label class="tg"><input type="checkbox" id="tgLights" checked><span>Faros</span></label>
+      <label class="tg"><input type="checkbox" id="tgGlow" checked><span>Neón</span></label>
+      <label class="tg"><input type="checkbox" id="tgTaxi"><span>Letrero taxi</span></label>
+      <label class="tg"><input type="checkbox" id="tgSpin"><span>Girar solo</span></label>
+      <label class="tg"><input type="checkbox" id="tgAO" checked><span>Sombreado</span></label>
+    </div>
+  </section>
+
+  <section>
+    <h2>Cámara</h2>
+    <div class="seg" id="views">
+      <button type="button" id="vFront" data-view="front" aria-pressed="true">¾ Frente</button>
+      <button type="button" id="vSide" data-view="side" aria-pressed="false">Lado</button>
+      <button type="button" id="vRear" data-view="rear" aria-pressed="false">¾ Atrás</button>
+      <button type="button" id="vTop" data-view="top" aria-pressed="false">Arriba</button>
+    </div>
+  </section>
+
+  <section>
+    <h2>Exportar</h2>
+    <button type="button" class="btn primary" id="dlZip" disabled>Descargar modelo (.zip)</button>
+    <p class="note">Trae <code>.glb</code> (Unity, Godot, Three.js), <code>.obj</code> + <code>.mtl</code> (Blender), <code>.vox</code> (MagicaVoxel) y <code>.json</code> con cada vóxel. 1 vóxel = 5 cm.</p>
+    <button type="button" class="btn" id="dlPng" disabled>Guardar captura (.png)</button>
+    <p class="status" id="status" role="status"></p>
+  </section>
+</aside>
+
+<div class="hint">Arrastra para girar · rueda para acercar</div>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
+
+/* ---------------- Paleta por pieza ---------------- */
+const ROLES = [
+  null,
+  { key:'body',      g:'paint' },
+  { key:'seam',      g:'paint' },
+  { key:'trim',      g:'matte', hex:'#1c1e23' },
+  { key:'glass',     g:'glass', hex:'#1a2430' },
+  { key:'mirror',    g:'glass', hex:'#6f8090' },
+  { key:'tire',      g:'matte', hex:'#17181a' },
+  { key:'tread',     g:'matte', hex:'#28292c' },
+  { key:'hub',       g:'paint', hex:'#c8ccd2' },
+  { key:'hubdark',   g:'matte', hex:'#5a5e66' },
+  { key:'chrome',    g:'paint', hex:'#e6e9ec' },
+  { key:'head',      g:'light', hex:'#fff4d2' },
+  { key:'amber',     g:'light', hex:'#ff9b26' },
+  { key:'tail',      g:'light', hex:'#d9222b' },
+  { key:'reverse',   g:'light', hex:'#efefef' },
+  { key:'taildark',  g:'matte', hex:'#6d1117' },
+  { key:'plate',     g:'matte', hex:'#eceee8' },
+  { key:'platetext', g:'matte', hex:'#24356a' },
+  { key:'well',      g:'matte', hex:'#0d0e10' },
+  { key:'exhaust',   g:'paint', hex:'#55585e' },
+  { key:'sign',      g:'light', hex:'#ffe27a' },
+  { key:'grille',    g:'matte', hex:'#2b2e35' },
+];
+const R = {};
+ROLES.forEach((r,i)=>{ if(r) R[r.key.toUpperCase()] = i; });
+
+const PAINTS = [
+  ['Plata','#b9bec4'], ['Blanco','#e8e9e7'], ['Rojo','#b11f29'], ['Azul','#24376e'],
+  ['Verde','#2f6b3c'], ['Morado','#7b4fd6'], ['Dorado','#c9a446'],
+];
+
+const state = { color:'#b9bec4', grid:false, lights:true, glow:true, taxi:false, spin:false, ao:true };
+
+/* ---------------- Rejilla de vóxeles ---------------- */
+// 1 vóxel = 5 cm. Largo 87 (x, frente en x=0), ancho 34 (z), alto hasta 31 (y).
+const LEN = 87, WID = 34;
+const AXF = 17, AXR = 66, WY = 6, WR = 6.3, ARCH = 7.6;   // ejes: distancia entre ejes 49 vóx ≈ 2.45 m
+const GH0 = 26, GH1 = 70;                                  // tramo de la cabina (cristales)
+const X0=-2, X1=89, Y0=0, Y1=32, Z0=-4, Z1=38;
+const SX=X1-X0, SY=Y1-Y0, SZ=Z1-Z0;
+const grid = new Uint8Array(SX*SY*SZ);
+const inb=(x,y,z)=>x>=X0&&x<X1&&y>=Y0&&y<Y1&&z>=Z0&&z<Z1;
+const id3=(x,y,z)=>((x-X0)*SY+(y-Y0))*SZ+(z-Z0);
+const set=(x,y,z,c)=>{ if(inb(x,y,z)) grid[id3(x,y,z)]=c; };
+const get=(x,y,z)=>inb(x,y,z)?grid[id3(x,y,z)]:0;
+const mz=z=>WID-1-z;
+const sym=(x,y,z,c)=>{ set(x,y,z,c); set(x,y,mz(z),c); };
+
+// Silueta lateral: altura del techo de la carrocería en cada x
+function topY(x){
+  if(x===0) return 9;
+  if(x===1) return 14;
+  if(x<=25) return 15+Math.round((x-2)*2/23);        // cofre
+  if(x<=40) return 18+Math.round((x-25)*9/15);       // parabrisas
+  if(x<=59) return 27;                               // toldo
+  if(x<=70) return 27-Math.round((x-59)*8/11);       // medallón
+  if(x<=83) return 18;                               // cajuela
+  if(x===84) return 18;
+  if(x===85) return 17;
+  return 10;                                         // defensa trasera
+}
+const botY = x => (x===0||x===86) ? 4 : 3;
+const planInset = x => x===0?3 : x===1?2 : x===2?1 : x===86?3 : x===85?1 : 0;
+function bodyInset(x,y,t){
+  let s=0;
+  if(y<=3) s=1;
+  if(y>=18) s=1;
+  if(y===t && (x<GH0||x>GH1)) s=Math.max(s, y>=18?2:1);
+  return Math.max(s, planInset(x));
+}
+const ghInset = y => y<=20?2 : y<=23?3 : 4;
+
+function ghRole(x,y,z,ins,t){
+  const side = (z===ins || z===mz(ins));
+  if(y>=27 && x>=41 && x<=59) return R.BODY;           // toldo
+  if(side){
+    if(y===t) return R.BODY;                            // poste A, riel del toldo
+    if(x<=27 || x>=61) return R.BODY;                   // base del poste A, poste C
+    if(x===45||x===46) return R.TRIM;                   // poste B negro
+    if(x===28||x===29) return R.TRIM;                   // esquinero del espejo
+    if(y===19) return R.TRIM;                           // hule inferior
+    if(y===26 && x>=41) return R.TRIM;                  // hule superior
+    return R.GLASS;
+  }
+  if(x===26 && y===19 && ((z>=7&&z<=15)||(z>=18&&z<=26))) return R.TRIM;  // limpiadores
+  return R.GLASS;
+}
+
+function buildGrid(){
+  grid.fill(0);
+  // Carrocería y cabina
+  for(let x=0;x<LEN;x++){
+    const t=topY(x), b=botY(x), gh=x>=GH0&&x<=GH1;
+    for(let y=b;y<=t;y++){
+      if(gh && y>=19){
+        const ins=ghInset(y);
+        for(let z=ins;z<=mz(ins);z++) set(x,y,z,ghRole(x,y,z,ins,t));
+      } else {
+        const ins=bodyInset(x,y,t);
+        for(let z=ins;z<=mz(ins);z++) set(x,y,z,R.BODY);
+      }
+    }
+  }
+  // Salpicaderas (cortes de rueda) con fondo oscuro
+  for(const ax of [AXF,AXR]){
+    for(let x=ax-10;x<=ax+10;x++) for(let y=0;y<=17;y++){
+      const d=Math.hypot(x-ax,y-WY);
+      if(d>ARCH+1.2) continue;
+      const ins=bodyInset(x,y,topY(x));
+      for(let z=0;z<WID;z++){
+        if(!get(x,y,z)) continue;
+        const outer = z<=7 || z>=WID-8;
+        if(d<=ARCH){ set(x,y,z, outer?0:R.WELL); }
+        else if(outer && z!==ins && z!==mz(ins)) set(x,y,z,R.WELL);
+      }
+    }
+  }
+  const outerZ = (x,y)=>bodyInset(x,y,topY(x));
+  const paintSide=(x,y,c,only)=>{
+    const oz=outerZ(x,y);
+    for(const z of [oz, mz(oz)]){ const v=get(x,y,z); if(v && (!only || only.includes(v))) set(x,y,z,c); }
+  };
+  // Juntas de puertas
+  for(const sx of [26,45,61]) for(let y=4;y<=18;y++) paintSide(sx,y,R.SEAM,[R.BODY]);
+  for(let x=26;x<=61;x++) paintSide(x,4,R.SEAM,[R.BODY]);
+  // Juntas de cofre y cajuela
+  for(let x=3;x<=24;x++){ const y=topY(x); set(x,y,2,R.SEAM); set(x,y,mz(2),R.SEAM); }
+  for(let x=72;x<=84;x++){ set(x,18,3,R.SEAM); set(x,18,mz(3),R.SEAM); }
+  for(let z=3;z<=mz(3);z++) set(71,18,z,R.SEAM);
+  // Moldura lateral
+  for(let x=2;x<=85;x++) paintSide(x,10,R.TRIM,[R.BODY,R.SEAM]);
+  // Manijas
+  for(const x of [41,42,57,58]) paintSide(x,15,R.TRIM);
+  // Tapón de gasolina (lado derecho, z=0)
+  for(let x=74;x<=76;x++) for(let y=14;y<=16;y++) if(!(x===75&&y===15)) set(x,y,0,R.SEAM);
+  // Antena en salpicadera izquierda
+  for(let y=topY(22)+1;y<=topY(22)+7;y++) set(22,y,mz(1),R.TRIM);
+  // Espejos
+  for(let x=28;x<=30;x++) for(let y=19;y<=21;y++) for(let z=-2;z<=0;z++) sym(x,y,z, (x===30&&z<=-1)?R.MIRROR:R.BODY);
+  sym(28,19,1,R.TRIM); sym(29,19,1,R.TRIM);
+
+  /* --- Frente --- */
+  for(let z=2;z<=mz(2);z++) set(1,10,z,R.TRIM);
+  for(let y=11;y<=13;y++) for(let z=2;z<=mz(2);z++){
+    const zz=Math.min(z,mz(z));
+    let c;
+    if(zz===2) c=R.AMBER;
+    else if(zz<=10) c = zz===7 ? R.CHROME : R.HEAD;
+    else if(zz===11) c=R.CHROME;
+    else c = y===12 ? R.TRIM : R.GRILLE;
+    set(1,y,z,c);
+  }
+  for(let z=15;z<=18;z++) set(1,12,z,R.CHROME);            // logo
+  for(const y of [11,13]){ set(1,y,16,R.CHROME); set(1,y,17,R.CHROME); }
+  for(let y=11;y<=13;y++) sym(2,y,1,R.AMBER);              // cuarto que envuelve la esquina
+  for(let y=11;y<=12;y++) sym(3,y,0,R.AMBER);
+  // Defensa delantera
+  for(let z=3;z<=mz(3);z++){
+    set(0,4,z,R.TRIM);
+    if(z>=8 && z<=mz(8)) for(const y of [5,6]) set(0,y,z, (z%2)?R.TRIM:R.GRILLE);
+  }
+  for(let y=6;y<=8;y++) for(let z=13;z<=20;z++) set(-1,y,z,R.PLATE);
+  for(const z of [14,15,16,18,19]) set(-1,7,z,R.PLATETEXT);
+
+  /* --- Atrás --- */
+  for(let y=13;y<=16;y++) for(let z=1;z<=mz(1);z++){
+    const zz=Math.min(z,mz(z));
+    let c;
+    if(zz<=2) c=R.AMBER;
+    else if(zz<=8) c=R.TAIL;
+    else if(zz<=10) c=R.REVERSE;
+    else c = y===16 ? R.TAILDARK : R.BODY;
+    set(85,y,z,c);
+  }
+  for(let y=13;y<=16;y++) sym(84,y,0,R.TAIL);
+  for(let z=14;z<=19;z++) set(85,15,z,R.CHROME);           // emblema
+  for(let y=12;y<=14;y++) for(let z=13;z<=20;z++) set(86,y,z,R.PLATE);
+  for(const z of [14,15,17,18,19]) set(86,13,z,R.PLATETEXT);
+  for(let z=3;z<=mz(3);z++){ set(86,10,z,R.TRIM); set(86,4,z,R.TRIM); }
+  for(const z of [4,5]) sym(86,7,z,R.TAILDARK);           // reflejantes
+  for(const x of [86,87]) for(const z of [6,7]) set(x,3,z,R.EXHAUST);
+
+  /* --- Llantas con tapón --- */
+  for(const ax of [AXF,AXR]){
+    for(const [zIn,zOut] of [[5,1],[mz(5),mz(1)]]){
+      const step = zOut<zIn?1:-1;
+      for(let dx=-7;dx<=7;dx++) for(let dy=-7;dy<=7;dy++){
+        const r=Math.hypot(dx,dy); if(r>WR) continue;
+        const x=ax+dx, y=WY+dy; if(y<0) continue;
+        const ang=Math.atan2(dy,dx);
+        for(let z=zOut; z!==zIn+step; z+=step){
+          let c;
+          if(z===zOut){
+            if(r>4.3) c=R.TIRE;
+            else if(r<0.5) c=R.HUBDARK;
+            else if(r<=1.5) c=R.CHROME;
+            else if(r<=3.7){
+              const sec=Math.floor(((ang+Math.PI)/(2*Math.PI))*8+0.5)%8;
+              c = (sec%2===1 && r>=2.2) ? R.HUBDARK : R.HUB;
+            } else c=R.HUB;
+          } else {
+            c = r>5.3 ? ((Math.floor(((ang+Math.PI)/(2*Math.PI))*24)+z)%2 ? R.TREAD : R.TIRE) : R.TIRE;
+          }
+          set(x,y,z,c);
+        }
+      }
+    }
+  }
+
+  /* --- Letrero de taxi (opcional) --- */
+  if(state.taxi){
+    for(let x=48;x<=53;x++) for(let z=12;z<=21;z++){
+      set(x,28,z,R.TRIM);
+      for(let y=29;y<=30;y++) set(x,y,z, (z===12||z===21||x===48||x===53)?R.TRIM:R.SIGN);
+    }
+  }
+}
+
+/* ---------------- Malla (solo caras visibles + oclusión ambiental) ---------------- */
+const DIRS=[[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1]];
+const AO_LEVEL=[1,0.8,0.66,0.54];
+function hash(x,y,z){
+  let h=(Math.imul(x,374761393)+Math.imul(y,668265263)+Math.imul(z,1440662683))|0;
+  h=Math.imul(h^(h>>>13),1274126177);
+  return ((h^(h>>>16))>>>0)/4294967296;
+}
+function roleHex(i){
+  if(i===R.BODY) return state.color;
+  if(i===R.SEAM) return '#'+new THREE.Color(state.color).multiplyScalar(0.5).getHexString();
+  return ROLES[i].hex;
+}
+// Recorre cada cara expuesta; cb(x,y,z,c,axis,sign,corners[4][3],ao[4])
+function forEachFace(cb){
+  const p=[0,0,0], q=[0,0,0];
+  for(let x=X0;x<X1;x++) for(let y=Y0;y<Y1;y++) for(let z=Z0;z<Z1;z++){
+    const c=grid[id3(x,y,z)]; if(!c) continue;
+    for(let f=0;f<6;f++){
+      const d=DIRS[f];
+      if(get(x+d[0],y+d[1],z+d[2])) continue;
+      const a = d[0]?0:d[1]?1:2, s=d[a];
+      const u=(a+1)%3, v=(a+2)%3;
+      const cs = s>0 ? [[0,0],[1,0],[1,1],[0,1]] : [[0,0],[0,1],[1,1],[1,0]];
+      const corners=[], ao=[];
+      for(const [cu,cv] of cs){
+        p[0]=x;p[1]=y;p[2]=z; p[a]+= s>0?1:0; p[u]+=cu; p[v]+=cv;
+        corners.push([p[0],p[1],p[2]]);
+        q[0]=x;q[1]=y;q[2]=z; q[a]+=s;
+        const su=cu?1:-1, sv=cv?1:-1;
+        const s1 = get(q[0]+(u===0?su:0)+(v===0?0:0), q[1]+(u===1?su:0), q[2]+(u===2?su:0))?1:0;
+        const s2 = get(q[0]+(v===0?sv:0), q[1]+(v===1?sv:0), q[2]+(v===2?sv:0))?1:0;
+        const cc = get(q[0]+(u===0?su:0)+(v===0?sv:0), q[1]+(u===1?su:0)+(v===1?sv:0), q[2]+(u===2?su:0)+(v===2?sv:0))?1:0;
+        ao.push((s1&&s2)?3:s1+s2+cc);
+      }
+      cb(x,y,z,c,a,s,corners,ao);
+    }
+  }
+}
+
+function buildGeometries(){
+  const groups={};
+  for(const g of ['paint','matte','glass','light']) groups[g]={pos:[],nor:[],col:[],idx:[],n:0};
+  const lines=[];
+  const base=ROLES.map((r,i)=>r?new THREE.Color(roleHex(i)):null);
+  const ox=-LEN/2, oz=-WID/2;
+  forEachFace((x,y,z,c,a,s,corners,ao)=>{
+    const role=ROLES[c], B=groups[role.g], col=base[c];
+    const noise = role.g==='light' ? 1 : 0.955+0.09*hash(x,y,z);
+    const nrm=[0,0,0]; nrm[a]=s;
+    for(let k=0;k<4;k++){
+      const [vx,vy,vz]=corners[k];
+      B.pos.push(vx+ox,vy,vz+oz); B.nor.push(nrm[0],nrm[1],nrm[2]);
+      const m = noise*(state.ao?AO_LEVEL[ao[k]]:1);
+      B.col.push(col.r*m,col.g*m,col.b*m);
+    }
+    const n=B.n;
+    if(ao[0]+ao[2] <= ao[1]+ao[3]) B.idx.push(n,n+1,n+2, n,n+2,n+3);
+    else B.idx.push(n+1,n+2,n+3, n+1,n+3,n);
+    B.n+=4;
+    const e=0.012*s;
+    for(let k=0;k<4;k++){
+      const A=corners[k], Bc=corners[(k+1)%4];
+      lines.push(A[0]+ox+(a===0?e:0),A[1]+(a===1?e:0),A[2]+oz+(a===2?e:0),
+                 Bc[0]+ox+(a===0?e:0),Bc[1]+(a===1?e:0),Bc[2]+oz+(a===2?e:0));
+    }
+  });
+  const out={};
+  for(const [g,B] of Object.entries(groups)){
+    const geo=new THREE.BufferGeometry();
+    geo.setAttribute('position',new THREE.Float32BufferAttribute(B.pos,3));
+    geo.setAttribute('normal',new THREE.Float32BufferAttribute(B.nor,3));
+    geo.setAttribute('color',new THREE.Float32BufferAttribute(B.col,3));
+    geo.setIndex(B.idx);
+    out[g]=geo;
+  }
+  const lg=new THREE.BufferGeometry();
+  lg.setAttribute('position',new THREE.Float32BufferAttribute(lines,3));
+  out.lines=lg;
+  return out;
+}
+
+/* ---------------- Escena ---------------- */
+const stage=document.getElementById('stage');
+const renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=0.82;
+renderer.shadowMap.enabled=true;
+renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+stage.appendChild(renderer.domElement);
+
+const scene=new THREE.Scene();
+const BG=0x121319;
+scene.background=new THREE.Color(BG);
+scene.fog=new THREE.Fog(BG,220,480);
+const pmrem=new THREE.PMREMGenerator(renderer);
+scene.environment=pmrem.fromScene(new RoomEnvironment(),0.04).texture;
+
+const camera=new THREE.PerspectiveCamera(35,1,1,2000);
+camera.position.set(-95,46,92);
+const controls=new OrbitControls(camera,renderer.domElement);
+controls.target.set(0,10,0);
+controls.enableDamping=true;
+controls.maxPolarAngle=Math.PI*0.495;
+controls.minDistance=40; controls.maxDistance=420;
+controls.autoRotateSpeed=1.2;
+
+scene.add(new THREE.HemisphereLight(0xc8d0ff,0x2a2030,0.7));
+const sun=new THREE.DirectionalLight(0xffffff,1.9);
+sun.position.set(-70,120,80);
+sun.castShadow=true;
+sun.shadow.mapSize.set(2048,2048);
+Object.assign(sun.shadow.camera,{left:-75,right:75,top:60,bottom:-60,near:10,far:400});
+sun.shadow.bias=-0.0004;
+scene.add(sun);
+const rim=new THREE.DirectionalLight(0xa58bff,0.9); rim.position.set(90,50,-90); scene.add(rim);
+
+const floor=new THREE.Mesh(new THREE.PlaneGeometry(1000,1000),new THREE.MeshStandardMaterial({color:0x16171e,roughness:0.95}));
+floor.rotation.x=-Math.PI/2; floor.receiveShadow=true; scene.add(floor);
+const gridHelper=new THREE.GridHelper(500,50,0x2e3040,0x22232d);
+gridHelper.position.y=0.02; scene.add(gridHelper);
+
+// Neón bajo el carro
+const gc=document.createElement('canvas'); gc.width=gc.height=256;
+const gx=gc.getContext('2d'); const grd=gx.createRadialGradient(128,128,0,128,128,128);
+grd.addColorStop(0,'rgba(255,255,255,0.95)'); grd.addColorStop(0.45,'rgba(255,255,255,0.45)'); grd.addColorStop(1,'rgba(255,255,255,0)');
+gx.fillStyle=grd; gx.fillRect(0,0,256,256);
+const glow=new THREE.Mesh(new THREE.PlaneGeometry(125,62),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(gc),color:0xd946ef,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false}));
+glow.rotation.x=-Math.PI/2; glow.position.y=0.06; scene.add(glow);
+
+const MAT={
+  paint:new THREE.MeshStandardMaterial({vertexColors:true,roughness:0.42,metalness:0.25,envMapIntensity:0.45,polygonOffset:true,polygonOffsetFactor:1,polygonOffsetUnits:1}),
+  matte:new THREE.MeshStandardMaterial({vertexColors:true,roughness:0.85,metalness:0,envMapIntensity:0.5,polygonOffset:true,polygonOffsetFactor:1,polygonOffsetUnits:1}),
+  glass:new THREE.MeshStandardMaterial({vertexColors:true,roughness:0.08,metalness:0.55,envMapIntensity:1.1,polygonOffset:true,polygonOffsetFactor:1,polygonOffsetUnits:1}),
+  lightOn:new THREE.MeshBasicMaterial({vertexColors:true,toneMapped:false,polygonOffset:true,polygonOffsetFactor:1,polygonOffsetUnits:1}),
+  lightOff:new THREE.MeshStandardMaterial({vertexColors:true,roughness:0.3,metalness:0.1,polygonOffset:true,polygonOffsetFactor:1,polygonOffsetUnits:1}),
+};
+MAT.paint.name='pintura'; MAT.matte.name='mate'; MAT.glass.name='cristal'; MAT.lightOn.name='luces'; MAT.lightOff.name='luces';
+const lineMat=new THREE.LineBasicMaterial({color:0x000000,transparent:true,opacity:0.38});
+
+const car=new THREE.Group(); scene.add(car);
+const meshes={};
+let gridLines=null;
+function rebuild(){
+  buildGrid();
+  const geos=buildGeometries();
+  for(const m of Object.values(meshes)){ m.geometry.dispose(); car.remove(m); }
+  if(gridLines){ gridLines.geometry.dispose(); car.remove(gridLines); }
+  for(const g of ['paint','matte','glass','light']){
+    const mat = g==='light' ? (state.lights?MAT.lightOn:MAT.lightOff) : MAT[g];
+    const m=new THREE.Mesh(geos[g],mat); m.castShadow=true; m.receiveShadow=true; m.name=g;
+    meshes[g]=m; car.add(m);
+  }
+  gridLines=new THREE.LineSegments(geos.lines,lineMat); gridLines.visible=state.grid; car.add(gridLines);
+  updateStats();
+}
+
+function collectVoxels(){
+  const list=[]; const min=[1e9,1e9,1e9], max=[-1e9,-1e9,-1e9];
+  for(let x=X0;x<X1;x++) for(let y=Y0;y<Y1;y++) for(let z=Z0;z<Z1;z++){
+    const c=grid[id3(x,y,z)]; if(!c) continue;
+    list.push([x,y,z,c]);
+    min[0]=Math.min(min[0],x);min[1]=Math.min(min[1],y);min[2]=Math.min(min[2],z);
+    max[0]=Math.max(max[0],x);max[1]=Math.max(max[1],y);max[2]=Math.max(max[2],z);
+  }
+  return {list,min,max};
+}
+function updateStats(){
+  const {list,min,max}=collectVoxels();
+  const sx=max[0]-min[0]+1, sy=max[1]-min[1]+1, sz=max[2]-min[2]+1;
+  document.getElementById('stats').textContent =
+    `${sx} × ${sz} × ${sy} vóx · ${list.length.toLocaleString('es-MX')} vóxeles\n1 vóxel = 5 cm · ${(sx*0.05).toFixed(2)} m de largo`;
+  document.getElementById('stats').style.whiteSpace='pre-line';
+}
+
+/* ---------------- Cámara ---------------- */
+const VIEWS={ front:[-95,40,92], side:[0,12,150], rear:[100,40,-82], top:[0,175,0.01] };
+let tween=null;
+// Distancia para que el carro quepa en el espacio libre (fuera del panel)
+function fitPos(name){
+  const w=stage.clientWidth||800, h=stage.clientHeight||600;
+  const freeW = w>=640 ? Math.max(200,w-340) : w;
+  const freeH = w>=640 ? h : h*0.55;
+  const tv=Math.tan(THREE.MathUtils.degToRad(camera.fov)/2);
+  const th=tv*w/h;
+  const half = name==='side' ? 46 : name==='top' ? 48 : 52;
+  const dH = half/(th*freeW/w), dV = (name==='top'?24:20)/(tv*freeH/h);
+  const d = Math.max(dH,dV)*1.08;
+  const dir=new THREE.Vector3(...VIEWS[name]).normalize();
+  return dir.multiplyScalar(d).add(controls.target);
+}
+let currentView='front';
+function goView(name){
+  currentView=name;
+  tween={from:camera.position.clone(),to:fitPos(name),t:0};
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches){ camera.position.copy(tween.to); tween=null; }
+  document.querySelectorAll('#views button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.view===name)));
+}
+document.querySelectorAll('#views button').forEach(b=>b.addEventListener('click',()=>goView(b.dataset.view)));
+controls.addEventListener('start',()=>{ tween=null; });
+
+function resize(){
+  const w=stage.clientWidth,h=stage.clientHeight;
+  renderer.setSize(w,h,false); camera.aspect=w/h;
+  camera.fov = w<640 ? 48 : 35;
+  // Centrar el carro en el espacio libre junto al panel
+  if(w>=640) camera.setViewOffset(w,h,-170,0,w,h);
+  else camera.setViewOffset(w,h,0,Math.round(h*0.2),w,h);
+  camera.updateProjectionMatrix();
+}
+new ResizeObserver(resize).observe(stage); resize();
+camera.position.copy(fitPos('front'));
+
+let last=performance.now();
+renderer.setAnimationLoop(now=>{
+  const dt=Math.min(0.05,(now-last)/1000); last=now;
+  if(tween){
+    tween.t=Math.min(1,tween.t+dt/0.7);
+    const k=1-Math.pow(1-tween.t,3);
+    camera.position.lerpVectors(tween.from,tween.to,k);
+    if(tween.t>=1) tween=null;
+  }
+  controls.autoRotate=state.spin;
+  controls.update();
+  renderer.render(scene,camera);
+});
+
+/* ---------------- Controles ---------------- */
+const swWrap=document.getElementById('swatches');
+const customColor=document.getElementById('customColor');
+function markSwatch(){
+  swWrap.querySelectorAll('.sw').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.hex===state.color)));
+}
+PAINTS.forEach(([name,hex],i)=>{
+  const b=document.createElement('button');
+  b.type='button'; b.className='sw'; b.id='sw'+i; b.dataset.hex=hex; b.title=name; b.setAttribute('aria-label',name);
+  b.style.background=hex;
+  b.addEventListener('click',()=>{ state.color=hex; customColor.value=hex; markSwatch(); rebuild(); });
+  swWrap.appendChild(b);
+});
+markSwatch();
+let colorTimer=null;
+customColor.addEventListener('input',()=>{
+  state.color=customColor.value; markSwatch();
+  clearTimeout(colorTimer); colorTimer=setTimeout(rebuild,60);
+});
+const bind=(id,key,fn)=>{ const el=document.getElementById(id); el.checked=state[key]; el.addEventListener('change',()=>{ state[key]=el.checked; fn(); }); };
+bind('tgGrid','grid',()=>{ gridLines.visible=state.grid; });
+bind('tgLights','lights',()=>{ meshes.light.material = state.lights?MAT.lightOn:MAT.lightOff; });
+bind('tgGlow','glow',()=>{ glow.visible=state.glow; });
+bind('tgTaxi','taxi',rebuild);
+bind('tgSpin','spin',()=>{});
+bind('tgAO','ao',rebuild);
+
+rebuild();
+
+/* ---------------- Exportadores ---------------- */
+const S=0.05; // metros por vóxel
+const enc=new TextEncoder();
+
+function makeVox(){
+  const {list,min,max}=collectVoxels();
+  const sx=max[0]-min[0]+1, sy=max[2]-min[2]+1, sz=max[1]-min[1]+1;
+  const used=[...new Set(list.map(v=>v[3]))];
+  const palIdx={}; used.forEach((c,i)=>palIdx[c]=i+1);
+  const n=list.length;
+  const size=8+12+24+(12+4+4*n)+(12+1024);
+  const dv=new DataView(new ArrayBuffer(size)); let o=0;
+  const tag=s=>{ for(let i=0;i<4;i++) dv.setUint8(o++,s.charCodeAt(i)); };
+  const u32=v=>{ dv.setUint32(o,v,true); o+=4; };
+  tag('VOX '); u32(150);
+  tag('MAIN'); u32(0); u32(size-20);
+  tag('SIZE'); u32(12); u32(0); u32(sx); u32(sy); u32(sz);
+  tag('XYZI'); u32(4+4*n); u32(0); u32(n);
+  for(const [x,y,z,c] of list){ dv.setUint8(o++,x-min[0]); dv.setUint8(o++,max[2]-z); dv.setUint8(o++,y-min[1]); dv.setUint8(o++,palIdx[c]); }
+  tag('RGBA'); u32(1024); u32(0);
+  for(let i=0;i<256;i++){
+    const c=used[i]; const col = c ? new THREE.Color(roleHex(c)) : null;
+    const [r,g,b] = col ? col.getHexString().match(/../g).map(h=>parseInt(h,16)) : [0,0,0];
+    dv.setUint8(o++,r); dv.setUint8(o++,g); dv.setUint8(o++,b); dv.setUint8(o++,255);
+  }
+  return new Uint8Array(dv.buffer);
+}
+
+function makeObj(){
+  const vmap=new Map(), verts=[], faces={};
+  const ox=-LEN/2, oz=-WID/2;
+  const vid=(x,y,z)=>{ const k=x+','+y+','+z; let i=vmap.get(k); if(i===undefined){ i=verts.length+1; vmap.set(k,i); verts.push(`v ${((x+ox)*S).toFixed(3)} ${(y*S).toFixed(3)} ${((z+oz)*S).toFixed(3)}`); } return i; };
+  const nIdx={'0,1':1,'0,-1':2,'1,1':3,'1,-1':4,'2,1':5,'2,-1':6};
+  forEachFace((x,y,z,c,a,s,corners)=>{
+    const ids=corners.map(p=>vid(p[0],p[1],p[2]));
+    const nn=nIdx[a+','+s];
+    (faces[c] ||= []).push(`f ${ids.map(i=>i+'//'+nn).join(' ')}`);
+  });
+  let obj='# Nissan Tsuru B13 en vóxeles · 1 vóxel = 5 cm · unidades en metros\nmtllib tsuru_voxel.mtl\no TsuruVoxel\n';
+  obj+=verts.join('\n')+'\n';
+  obj+='vn 1 0 0\nvn -1 0 0\nvn 0 1 0\nvn 0 -1 0\nvn 0 0 1\nvn 0 0 -1\n';
+  let mtl='# Materiales del Tsuru en vóxeles\n';
+  for(const [c,list] of Object.entries(faces)){
+    const key=ROLES[c].key;
+    obj+=`usemtl ${key}\n`+list.join('\n')+'\n';
+    const col=new THREE.Color(roleHex(+c)); const hex=col.getHexString();
+    const rgb=hex.match(/../g).map(h=>(parseInt(h,16)/255).toFixed(4)).join(' ');
+    mtl+=`\nnewmtl ${key}\nKd ${rgb}\nKa 0 0 0\nKs 0.1 0.1 0.1\nNs 20\nd 1\nillum 2\n`;
+    if(ROLES[c].g==='light') mtl+=`Ke ${rgb}\n`;
+  }
+  return {obj:enc.encode(obj), mtl:enc.encode(mtl)};
+}
+
+function makeJson(){
+  const {list,min,max}=collectVoxels();
+  const used=[...new Set(list.map(v=>v[3]))].sort((a,b)=>a-b);
+  const palette={}; used.forEach(c=>palette[c]={pieza:ROLES[c].key,color:'#'+new THREE.Color(roleHex(c)).getHexString()});
+  return enc.encode(JSON.stringify({
+    modelo:'Nissan Tsuru B13 (vóxeles)', voxel_m:S, ejes:'x = largo (frente en x mínimo), y = alto, z = ancho',
+    min, max, paleta:palette, voxeles:list
+  }));
+}
+
+async function makeGlb(){
+  const root=new THREE.Group(); root.name='TsuruVoxel'; root.scale.setScalar(S);
+  for(const m of Object.values(meshes)){ const c=new THREE.Mesh(m.geometry,m.material); c.name=m.name; root.add(c); }
+  const res=await new GLTFExporter().parseAsync(root,{binary:true});
+  return new Uint8Array(res);
+}
+
+const CRC_T=(()=>{ const t=new Uint32Array(256); for(let n=0;n<256;n++){ let c=n; for(let k=0;k<8;k++) c = c&1 ? 0xEDB88320^(c>>>1) : c>>>1; t[n]=c>>>0; } return t; })();
+function crc32(b){ let c=0xFFFFFFFF; for(let i=0;i<b.length;i++) c=CRC_T[(c^b[i])&0xFF]^(c>>>8); return (c^0xFFFFFFFF)>>>0; }
+function makeZip(files){
+  const parts=[], central=[]; let off=0;
+  const DATE=((2026-1980)<<9)|(11<<5)|11, TIME=12<<11;
+  for(const f of files){
+    const name=enc.encode(f.name), crc=crc32(f.data), sz=f.data.length;
+    const h=new DataView(new ArrayBuffer(30));
+    h.setUint32(0,0x04034b50,true); h.setUint16(4,20,true); h.setUint16(6,0x0800,true); h.setUint16(8,0,true);
+    h.setUint16(10,TIME,true); h.setUint16(12,DATE,true); h.setUint32(14,crc,true); h.setUint32(18,sz,true); h.setUint32(22,sz,true);
+    h.setUint16(26,name.length,true); h.setUint16(28,0,true);
+    parts.push(new Uint8Array(h.buffer),name,f.data);
+    const c=new DataView(new ArrayBuffer(46));
+    c.setUint32(0,0x02014b50,true); c.setUint16(4,20,true); c.setUint16(6,20,true); c.setUint16(8,0x0800,true); c.setUint16(10,0,true);
+    c.setUint16(12,TIME,true); c.setUint16(14,DATE,true); c.setUint32(16,crc,true); c.setUint32(20,sz,true); c.setUint32(24,sz,true);
+    c.setUint16(28,name.length,true); c.setUint16(30,0,true); c.setUint16(32,0,true); c.setUint16(34,0,true); c.setUint16(36,0,true);
+    c.setUint32(38,0,true); c.setUint32(42,off,true);
+    central.push(new Uint8Array(c.buffer),name);
+    off+=30+name.length+sz;
+  }
+  const cdSize=central.reduce((s,p)=>s+p.length,0);
+  const e=new DataView(new ArrayBuffer(22));
+  e.setUint32(0,0x06054b50,true); e.setUint16(8,files.length,true); e.setUint16(10,files.length,true);
+  e.setUint32(12,cdSize,true); e.setUint32(16,off,true);
+  return new Blob([...parts,...central,new Uint8Array(e.buffer)],{type:'application/zip'});
+}
+
+const README=`Nissan Tsuru B13 en vóxeles
+==========================
+Escala: 1 vóxel = 5 cm. El carro mide ~4.35 m de largo.
+
+tsuru_voxel.glb   Malla con colores por vértice (incluye el sombreado entre vóxeles). Unity, Godot, Unreal, Three.js, Blender.
+tsuru_voxel.obj   Malla con un material por pieza (ver .mtl). Ideal para Blender: Archivo > Importar > Wavefront (.obj).
+tsuru_voxel.mtl   Colores de cada pieza (carrocería, cristal, llantas, faros…).
+tsuru_voxel.vox   Para editar vóxel por vóxel en MagicaVoxel.
+tsuru_voxel.json  Lista cruda de vóxeles [x, y, z, pieza] por si quieres cargarlo en tu propio motor.
+
+Ejes en .glb/.obj: Y hacia arriba, el frente del carro apunta a -X.
+`;
+
+let downloads=null;
+const statusEl=document.getElementById('status');
+const zipBtn=document.getElementById('dlZip'), pngBtn=document.getElementById('dlPng');
+function say(t){ statusEl.textContent=t; }
+async function save(filename,data){
+  try{ await downloads.save({filename,data}); say('Listo: '+filename); }
+  catch(err){
+    const code=err&&err.code;
+    if(code==='declined') say('Descarga cancelada.');
+    else if(code==='rate_limited') say('Ya hay una descarga pendiente. Intenta en un momento.');
+    else say('No se pudo guardar el archivo en esta vista.');
+  }
+}
+zipBtn.addEventListener('click',async()=>{
+  zipBtn.disabled=true; say('Empaquetando…');
+  try{
+    const glb=await makeGlb(); const {obj,mtl}=makeObj();
+    const zip=makeZip([
+      {name:'LEEME.txt',data:enc.encode(README)},
+      {name:'tsuru_voxel.glb',data:glb},
+      {name:'tsuru_voxel.obj',data:obj},
+      {name:'tsuru_voxel.mtl',data:mtl},
+      {name:'tsuru_voxel.vox',data:makeVox()},
+      {name:'tsuru_voxel.json',data:makeJson()},
+    ]);
+    await save('tsuru_voxel.zip',zip);
+  }catch(e){ say('Error al exportar: '+(e&&e.message||e)); }
+  zipBtn.disabled=false;
+});
+pngBtn.addEventListener('click',async()=>{
+  renderer.render(scene,camera);
+  const url=renderer.domElement.toDataURL('image/png');
+  const bin=atob(url.split(',')[1]); const bytes=new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
+  await save('tsuru_voxel.png',new Blob([bytes],{type:'image/png'}));
+});
+
+// Exponer para pruebas locales
+window.__tsuru={makeVox,makeObj,makeJson,makeGlb,makeZip,collectVoxels};
+
+(async()=>{
+  try{ downloads = window.claude?.use ? await window.claude.use('downloads') : null; }catch(e){ downloads=null; }
+  if(downloads){ zipBtn.disabled=false; pngBtn.disabled=false; }
+  else say('Las descargas funcionan al abrir esta página en claude.ai.');
+})();
+</script>
