@@ -43,6 +43,7 @@
       G.popup(`+${xp.toLocaleString('es-MX')} Street XP del meet${up ? ` · ¡Nivel ${up}!` : ''}`, 'xp');
     },
     emergencyFuel: () => G.emergencyFuel(),
+    editCharacter: () => { garage.close(); charEditor.open(false); },
     wipe: () => { HmoProgress.wipe(); try { localStorage.removeItem('hmo.casa'); } catch (e) { /* nada */ } location.reload(); },
   });
   function openGarage() { G.keys.clear(); car.vx = car.vy = car.w = 0; G.persist(); garage.open(); }
@@ -90,7 +91,7 @@
     if (atHome()) { openGarage(); return; }
     const sh = G.shopHere();
     if (sh) { openShop(sh); return; }
-    if (G.inMeet(G.activeMeet())) G.parkAtMeet();
+    if (G.inMeet(G.activeMeet())) G.openMeetScene();
   }
   function promptText() {
     if (car.tel.speed > 2) return '';
@@ -99,7 +100,21 @@
     if (sh) return `E: entrar a ${sh.name}`;
     return G.meetPrompt();
   }
-  const paused = () => garage.isOpen || shopUI.isOpen || G.fullMap.isOpen;
+  // ---------- tu personaje ----------
+  // la primera vez que entras se crea antes de ir al taller; después se edita desde el taller
+  const charEditor = new HmoCharMenu.Editor({
+    get: () => save.character,
+    save: (look) => { save.character = look; G.persist(); },
+    done: () => garage.open(),
+  });
 
-  Object.assign(G, { garage, shopUI, openGarage, afterFullMap, openShop, enter, promptText, paused });
+  // ---------- escena del meet ----------
+  const meetScene = new HmoMeetScene.Scene({
+    back: () => G.closeMeetScene(),
+    leaveCar: () => { G.closeMeetScene(); G.parkAtMeet(); },
+  });
+
+  const paused = () => garage.isOpen || shopUI.isOpen || G.fullMap.isOpen || charEditor.isOpen || meetScene.isOpen;
+
+  Object.assign(G, { garage, shopUI, charEditor, meetScene, openGarage, afterFullMap, openShop, enter, promptText, paused });
 })();

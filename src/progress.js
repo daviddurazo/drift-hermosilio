@@ -61,6 +61,7 @@
       owned: ['pitic'], current: 'pitic',
       tuning: {}, fuel: {},
       home: null, playTime: 0,
+      character: null, // tu personaje (HmoCharacter); null = todavía no lo creas
       meetDone: -1, hiddenFound: { epoch: -1, ids: [] }, parked: null,
       stats: { bestCombo: 0, totalPoints: 0, meets: 0 },
     };

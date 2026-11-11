@@ -79,6 +79,7 @@
       $('t-borrar-no').onclick = () => { $('t-confirmar').hidden = true; };
       $('t-borrar-si').onclick = () => { $('t-confirmar').hidden = true; api.wipe(); };
       $('t-recoger').onclick = () => api.collect();
+      $('t-personaje').onclick = (e) => { e.currentTarget.blur(); api.editCharacter(); };
       this.show = new HmoShowroom.Showroom($('t-carro'), {
         onSelect: (id) => {
           this.sel = id;

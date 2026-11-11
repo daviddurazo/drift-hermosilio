@@ -96,7 +96,7 @@
   .drift-hud span { font-family: var(--display); font-size: 18px; color: var(--accent); font-weight: 700; }
   .drift-grace { width: 120px; height: 4px; }
   .drift-grace i { background: var(--accent); }
-  .drift-pop { position: fixed; top: max(130px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); font-family: var(--display); font-weight: 700; font-size: 26px; pointer-events: none; text-shadow: 0 2px 6px rgba(0,0,0,0.7); }
+  .drift-pop { z-index: 29; position: fixed; top: max(130px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); font-family: var(--display); font-weight: 700; font-size: 26px; pointer-events: none; text-shadow: 0 2px 6px rgba(0,0,0,0.7); }
   .drift-pop[data-tipo="bank"] { color: #7fc77a; }
   .drift-pop[data-tipo="fail"] { color: var(--hot); }
   .drift-pop[data-tipo="xp"] { color: #b583ff; }
@@ -135,6 +135,29 @@
   .v-badge { position: absolute; top: 10px; left: 12px; margin: 0; padding: 4px 9px; border-radius: 6px; background: rgba(10, 11, 16, 0.6); font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; pointer-events: none; }
   .v-badge[data-tipo="uso"] { color: var(--accent); }
   .v-badge[data-tipo="bloqueado"] { color: var(--ink-2); }
+  /* editor de personaje */
+  .personaje-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 22px; align-items: start; }
+  @media (max-width: 760px) { .personaje-body { grid-template-columns: 1fr; } }
+  .p-vista { height: clamp(300px, 62vh, 560px); position: sticky; top: 12px; }
+  .p-vista canvas, .escena-cv { touch-action: pan-y; cursor: grab; }
+  .p-vista canvas.arrastrando, .escena-cv.arrastrando { cursor: grabbing; }
+  .p-opciones { display: flex; flex-direction: column; gap: 14px; }
+  .p-grupo { display: flex; flex-direction: column; gap: 6px; }
+  .p-nombre { font: 600 16px var(--ui); color: var(--ink); background: rgba(255,255,255,0.06); border: 1px solid var(--panel-line); border-radius: 8px; padding: 9px 12px; max-width: 280px; }
+  .p-nombre:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+  /* escena del meet */
+  .escena { position: fixed; inset: 0; z-index: 24; background: linear-gradient(180deg, #0b0d1e 0%, #1a1438 45%, #2a1840 62%, #15121f 100%); }
+  .escena-3d { position: absolute; inset: 0; }
+  .escena-hud { position: absolute; top: max(14px, env(safe-area-inset-top)); left: max(14px, env(safe-area-inset-left)); padding: 12px 16px; min-width: 220px; max-width: calc(100vw - 28px); box-sizing: border-box; }
+  .escena-hud h2 { margin: 2px 0 6px; font-family: var(--display); font-size: 22px; line-height: 1.1; }
+  .escena-hud .eyebrow { color: #b583ff; }
+  .escena-hud .barra i { background: #b583ff; }
+  .escena-hud p { margin: 0 0 6px; font-size: 13px; font-variant-numeric: tabular-nums; }
+  .escena-hud small { color: var(--ink-2); font-size: 11px; }
+  .escena-acciones { position: absolute; left: 50%; bottom: max(18px, env(safe-area-inset-bottom)); transform: translateX(-50%); display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; width: max-content; max-width: calc(100vw - 32px); }
+  .escena-tip { position: absolute; right: max(14px, env(safe-area-inset-right)); top: max(14px, env(safe-area-inset-top)); margin: 0; font-size: 12px; color: var(--ink-2); background: rgba(10,11,16,0.55); padding: 5px 9px; border-radius: 6px; pointer-events: none; }
+  @media (max-width: 600px) { .escena-tip { display: none; } }
   .t-titulo { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px 16px; }
   .perf { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 18px; }
   .perf-row { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--ink-2); }
@@ -263,7 +286,7 @@
     <dt><kbd>Espacio</kbd></dt><dd>Freno de mano</dd>
     <dt><kbd>C</kbd></dt><dd>Cambiar cámara</dd>
     <dt><kbd>R</kbd></dt><dd>Volver a la calle</dd>
-    <dt><kbd>E</kbd></dt><dd>Entrar a tu casa o a un taller; en un meet, dejar el carro</dd>
+    <dt><kbd>E</kbd></dt><dd>Entrar a tu casa o a un taller; en un meet, bajarte del carro (ahí lo puedes dejar)</dd>
     <dt><kbd>T</kbd></dt><dd>Llamar grúa ($300)</dd>
     <dt><kbd>G</kbd></dt><dd>Ruta a la gasolinera más cercana</dd>
     <dt><kbd>M</kbd></dt><dd>Mapa completo (elegir destino o casa)</dd>
@@ -355,12 +378,13 @@
       <div class="t-side">
         <p class="pint-label">Piezas instaladas</p>
         <ul class="t-piezas" id="t-piezas"></ul>
-        <p class="pant-sub">Las piezas se compran en los talleres de la ciudad (llave inglesa en el mapa).</p>
+        <p class="pant-sub">Las piezas se compran en los talleres de la ciudad: la T naranja en el mapa (dorada si es un taller escondido).</p>
       </div>
     </div>
     <footer class="pant-foot">
       <button type="button" id="t-manejar" class="primary grande">Salir a manejar</button>
       <button type="button" id="t-casa">Cambiar casa</button>
+      <button type="button" id="t-personaje">Tu personaje</button>
       <button type="button" id="t-bidon" hidden>Bidón de emergencia (gratis)</button>
       <span class="spacer"></span>
       <button type="button" id="t-borrar" class="peligro">Borrar partida</button>
@@ -400,6 +424,49 @@
   </div>
 </section>
 
+<section class="pantalla" id="personaje" aria-label="Tu personaje" hidden>
+  <div class="pant-in">
+    <header class="pant-head">
+      <div>
+        <p class="eyebrow">Así te ven en los meets</p>
+        <h1 id="p-titulo">Tu personaje</h1>
+        <p class="pant-sub">Es gratis y lo puedes cambiar cuando quieras desde tu taller. Arrastra para darle vuelta.</p>
+      </div>
+    </header>
+    <div class="personaje-body">
+      <div id="p-vista" class="vitrina p-vista"></div>
+      <div>
+        <div class="p-grupo">
+          <label class="pint-label" for="p-nombre">Apodo</label>
+          <input id="p-nombre" class="p-nombre" type="text" maxlength="16" autocomplete="off" spellcheck="false" placeholder="Cómo te dicen">
+        </div>
+        <div id="p-opciones" class="p-opciones" style="margin-top: 14px"></div>
+      </div>
+    </div>
+    <footer class="pant-foot">
+      <button type="button" id="p-listo" class="primary grande">Guardar</button>
+      <button type="button" id="p-azar">Al azar</button>
+    </footer>
+  </div>
+</section>
+
+<section class="escena" id="meet-escena" aria-label="Meet" hidden>
+  <div id="me-3d" class="escena-3d"></div>
+  <div class="panel escena-hud">
+    <p class="eyebrow">Meet</p>
+    <h2 id="me-calle">—</h2>
+    <p id="me-xp">—</p>
+    <div class="barra"><i id="me-xpbar"></i></div>
+    <small id="me-nivel">—</small>
+    <p class="pant-sub" id="me-sin3d" hidden>Tu navegador no tiene 3D (WebGL), así que aquí no se ve la escena. El XP sí cuenta.</p>
+  </div>
+  <p class="escena-tip">Arrastra para mirar alrededor</p>
+  <div class="escena-acciones">
+    <button type="button" id="me-volver" class="primary grande">Volver al carro <kbd>E</kbd></button>
+    <button type="button" id="me-dejar" class="grande">Dejar el carro aquí</button>
+  </div>
+</section>
+
 <div class="fundido" id="fundido" hidden><p id="fundido-txt">La grúa va en camino…</p></div>
 <div class="aviso" id="aviso" role="status" hidden></div>
 <div class="credit">Mapa © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">colaboradores de OpenStreetMap</a></div>
@@ -408,7 +475,10 @@
 <script src="src/tiles.js"></script>
 <script src="src/cars.js"></script>
 <script src="src/model3d.js"></script>
+<script src="src/gl3d.js"></script>
+<script src="src/character.js"></script>
 <script src="src/showroom.js"></script>
+<script src="src/meetscene.js"></script>
 <script src="src/physics.js"></script>
 <script src="src/route.js"></script>
 <script src="src/night.js"></script>
@@ -418,6 +488,7 @@
 <script src="src/tuning.js"></script>
 <script src="src/drift.js"></script>
 <script src="src/menus.js"></script>
+<script src="src/charmenu.js"></script>
 <script src="src/game/core.js"></script>
 <script src="src/game/input.js"></script>
 <script src="src/game/camera.js"></script>

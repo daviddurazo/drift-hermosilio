@@ -30,6 +30,8 @@
       // en pausa: el mapa completo se dibuja; las pantallas de taller tapan todo
       if (G.fullMap.isOpen) G.fullMap.draw();
       if (G.garage.isOpen && save.parked && (parkedTick -= dt) <= 0) { parkedTick = 1; G.garage.renderParked(save); }
+      // en la escena del meet sigues juntando XP (el carro está parado ahí)
+      if (G.meetScene.isOpen) { G.meetStep(dt); G.meetScene.hud(G.meetHud()); }
       acc = 0;
       requestAnimationFrame(frame);
       return;
@@ -51,7 +53,7 @@
     requestAnimationFrame(frame);
   }
 
-  // cada vez que entras al juego empiezas en tu taller
-  G.garage.open();
+  // cada vez que entras al juego empiezas en tu taller (la primera vez, antes creas tu personaje)
+  if (save.character) G.garage.open(); else G.charEditor.open(true);
   requestAnimationFrame(frame);
 })();

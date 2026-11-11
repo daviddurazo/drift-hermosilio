@@ -139,8 +139,8 @@
         if (car.neon) {
           for (const p of car.neon) {
             if (p.i < 0.02) continue;
-            g.globalAlpha = Math.min(1, p.i * 0.8);
-            g.drawImage(this.cut, p.x - 2.6, p.y - 2.6, 5.2, 5.2);
+            g.globalAlpha = Math.min(1, p.i * 0.65);
+            g.drawImage(this.cut, p.x * 1.08 - 2.5, p.y * 1.2 - 2.5, 5, 5);
           }
           g.globalAlpha = 1;
         }
@@ -172,7 +172,12 @@
         const br = car.braking ? 2.6 : 1.4;
         ctx.drawImage(this.red, -L2 - br / 2, -W2 + 0.2 - br / 2, br, br);
         ctx.drawImage(this.red, -L2 - br / 2, W2 - 0.2 - br / 2, br, br);
-        drawNeon(ctx, car.neon, 3.4, 0.45); // un poco de luz de color encima, como reflejo
+        // reflejo suave del neón, hacia afuera para no tapar el carro ('lighten': sin llegar a blanco)
+        if (car.neon) {
+          ctx.globalCompositeOperation = 'lighten';
+          drawNeon(ctx, car.neon.map((p) => Object.assign({}, p, { x: p.x * 1.15, y: p.y * 1.35 })), 3, 0.35);
+          ctx.globalCompositeOperation = 'lighter';
+        }
         ctx.restore();
       }
       ctx.restore();

@@ -60,12 +60,14 @@
     const s = car.s, L = s.length, W = s.width;
     ctx.save();
     ctx.translate(car.x, car.y);
-    // luz de neón en el piso (abajo del carro, sale por los lados)
+    // luz de neón en el piso, alrededor del carro. Con 'lighten' cada canal toma el máximo en vez de sumarse:
+    // brilla igual, pero los focos encimados ya no se vuelven una mancha blanca (el color se queda como lo elegiste).
     if (neon) {
       ctx.save();
       ctx.rotate(car.h);
-      ctx.globalCompositeOperation = 'lighter';
-      HmoNight.drawNeon(ctx, neon, 4.2, 1);
+      ctx.globalCompositeOperation = 'lighten';
+      const out = neon.map((p) => Object.assign({}, p, { x: p.x * 1.06, y: p.y * 1.15 }));
+      HmoNight.drawNeon(ctx, out, 3.8, 0.95);
       ctx.restore();
     }
     // sombra fija hacia el sureste, como la del mapa

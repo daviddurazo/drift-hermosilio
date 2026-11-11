@@ -6,8 +6,10 @@
 
   const keys = new Set();
   const GAME_KEYS = new Set(['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'KeyC', 'KeyR', 'KeyE', 'KeyT', 'KeyH', 'KeyM', 'KeyG', 'KeyX', 'KeyK', 'Escape']);
+  // escribiendo en un campo (el apodo) las teclas no son del juego
+  const typing = (e) => e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA');
   addEventListener('keydown', (e) => {
-    if (!GAME_KEYS.has(e.code)) return;
+    if (typing(e) || !GAME_KEYS.has(e.code)) return;
     e.preventDefault();
     if (e.repeat) return;
     if (G.fullMap.isOpen) {
@@ -15,6 +17,8 @@
       if (e.code === 'Escape' || e.code === 'KeyM') G.fullMap.close();
       return;
     }
+    if (G.meetScene.isOpen) { if (e.code === 'Escape' || e.code === 'KeyE') G.closeMeetScene(); return; }
+    if (G.charEditor.isOpen) return;
     if (G.shopUI.isOpen) { if (e.code === 'Escape') G.shopUI.close(); return; }
     if (G.garage.isOpen) return;
     keys.add(e.code);
@@ -28,7 +32,7 @@
     if (e.code === 'KeyE') G.enter();
     if (e.code === 'KeyT') G.callTow();
   });
-  addEventListener('keyup', (e) => { if (GAME_KEYS.has(e.code)) { e.preventDefault(); keys.delete(e.code); } });
+  addEventListener('keyup', (e) => { if (!typing(e) && GAME_KEYS.has(e.code)) { e.preventDefault(); keys.delete(e.code); } });
   addEventListener('blur', () => keys.clear());
 
   let padPrev = {};

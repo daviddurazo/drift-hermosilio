@@ -71,10 +71,39 @@
     const m = activeMeet();
     if (inMeet(m)) {
       const bonus = save.meetDone !== m.ep ? ` · bono en ${Math.max(0, Math.ceil(MEET_STAY - meetTimer))} s` : '';
-      return `Meet: +${farmRate().toFixed(1)} XP/min${bonus} · E: dejar el carro aquí`;
+      return `Meet: +${farmRate().toFixed(1)} XP/min${bonus} · E: bajarte al meet`;
     }
     if (m && Math.hypot(m.x - car.x, m.y - car.y) < MEET_R) return 'Meet: detente para juntar Street XP';
     return '';
+  }
+
+  // ---------- escena del meet (E estando parado en el meet) ----------
+  function openMeetScene() {
+    const m = activeMeet();
+    if (!inMeet(m)) return;
+    G.keys.clear();
+    car.vx = car.vy = car.w = 0;
+    const id = save.current, tun = save.tuning[id];
+    G.meetScene.open({
+      seed: m.ep,
+      street: G.streets.nameAt(m.x, m.y, 120) || 'Meet',
+      player: {
+        look: HmoCharacter.lookOf(save.character), spec: G.baseOf(id), paint: tun.paint,
+        rim: HmoTuning.RIM_COLORS[tun.rines || 0], neon: HmoTuning.neonOf(tun),
+      },
+    });
+  }
+  function closeMeetScene() { G.meetScene.close(); G.keys.clear(); }
+  // texto del panel de la escena
+  function meetHud() {
+    const m = activeMeet();
+    const lv = HmoProgress.levelFromXP(save.xp);
+    const bonus = m && save.meetDone !== m.ep ? ` · bono de ${ECON.meetXP} XP en ${Math.max(0, Math.ceil(MEET_STAY - meetTimer))} s` : '';
+    return {
+      xp: `+${farmRate().toFixed(1)} Street XP por minuto${bonus}`,
+      level: `Nivel ${lv.level} · ${lv.into} / ${lv.need} XP`,
+      frac: lv.frac,
+    };
   }
 
   function drawMeet(ctx) {
@@ -95,5 +124,5 @@
     ctx.restore();
   }
 
-  Object.assign(G, { activeMeet, inMeet, meetStep, parkAtMeet, meetPrompt, drawMeet });
+  Object.assign(G, { activeMeet, inMeet, meetStep, parkAtMeet, meetPrompt, drawMeet, openMeetScene, closeMeetScene, meetHud });
 })();
