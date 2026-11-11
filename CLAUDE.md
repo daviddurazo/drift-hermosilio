@@ -7,7 +7,7 @@ Juego de drift 2D en vista aérea sobre el mapa real del centro de Hermosillo y 
 - Abrir `index.html` en el navegador (`open index.html`). No hay build ni servidor: funciona con `file://`.
 - `mapa.html` es un visor del mapa (sin juego), útil para revisar la conversión.
 - Scripts clásicos (`<script src>`), **no módulos ES** (con `file://` se bloquean). Cada archivo es una IIFE que publica un global `window.Hmo*`. El orden de los `<script>` en `index.html` importa: `src/game/core.js` va primero de los de `src/game/` y `src/game.js` al final. Dentro de `src/game/` el orden solo importa para lo que corre al cargar (lo que se llama después pasa por G).
-- No hay git todavía (el usuario lo pospuso).
+- Git: rama `main`, remoto `origin` en GitHub. El usuario hace los commits y los push; solo darle los comandos, salvo que pida lo contrario.
 
 ## Regenerar el mapa
 
@@ -84,10 +84,9 @@ python3 -I tools/build_map.py data/raw/centro_campana.json src/map.js [preview.p
 
 ## Pendiente (orden recomendado)
 
-1. Iniciar git.
-2. Carreras con checkpoints (subida al cerro por Cucurpe, circuito del centro, bulevares) que den dinero y Street XP.
-3. Sonido: motor, llantas, choques.
-4. Carros en los meets y tráfico.
-5. Carro eléctrico y electrolinera (ya está en `pois.charge`).
-6. Intercambios de carros.
-7. Arrancones, después.
+1. Carreras con checkpoints (subida al cerro por Cucurpe, circuito del centro, bulevares) que den dinero y Street XP.
+2. Sonido: motor, llantas, choques.
+3. Carros en los meets y tráfico.
+4. Carro eléctrico y electrolinera (ya está en `pois.charge`).
+5. Intercambios de carros.
+6. Arrancones, después.
