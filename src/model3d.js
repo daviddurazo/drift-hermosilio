@@ -7,7 +7,8 @@
   const VOX = 0.06; // tamaño del cubito en metros
 
   const MAT_NAMES = ['paint', 'roof', 'pillar', 'blackout', 'glass', 'head', 'tail', 'garnish', 'signal', 'grille',
-    'grilleBar', 'chrome', 'bumper', 'under', 'tire', 'rim', 'rimDark', 'hub', 'plate', 'seam', 'handle', 'mirror', 'skirt', 'wing'];
+    'grilleBar', 'chrome', 'bumper', 'under', 'tire', 'rim', 'rimDark', 'hub', 'plate', 'seam', 'handle', 'mirror', 'skirt', 'wing',
+    'tread', 'reverse', 'reflector', 'plateText'];
   const M = {};
   MAT_NAMES.forEach((n, i) => { M[n] = i; });
 
@@ -190,8 +191,32 @@
 
   const cache = new Map();
 
+  // carro hecho a mano cubito por cubito (src/batsuru3d.js): misma malla y mismos datos por cara que build()
+  function buildHand(spec, G) {
+    const occ = new Uint8Array(G.cell.length);
+    for (let i = 0; i < occ.length; i++) occ[i] = G.cell[i] ? 1 : 0;
+    const F = voxelFaces(G.nx, G.ny, G.nz, occ, G.vox, G.origin);
+    const fMat = new Uint8Array(F.count), fInfo = new Float32Array(F.count * 6);
+    for (let f = 0; f < F.count; f++) {
+      const i = F.vox[f], ix = Math.floor(i / (G.ny * G.nz)), iy = Math.floor(i / G.nz) % G.ny, iz = i % G.nz;
+      fMat[f] = M[G.names[G.cell[i]]];
+      fInfo.set([G.u(ix), G.y(iy), G.z(iz), G.dTop[i], G.zone[i], F.dir[f]], f * 6);
+    }
+    return {
+      id: spec.id, faces: F.count, verts: F.count * 6,
+      pos: F.pos, nor: F.nor, ao: F.ao, fMat, fInfo,
+      length: G.length, width: G.width, height: G.height, hoodU: G.hoodU,
+    };
+  }
+
   function build(spec) {
     if (cache.has(spec.id)) return cache.get(spec.id);
+    const hand = window.HmoBatsuru3D;
+    if (hand && hand.ids.includes(spec.id)) {
+      const mesh = buildHand(spec, hand.grid());
+      cache.set(spec.id, mesh);
+      return mesh;
+    }
     const md = MODELS[spec.id];
     const L = spec.length, W = spec.width, g = md.gh, R = md.wheelR;
     const axF = L / 2 + spec.wheelbase / 2 + 0.05, axR = L / 2 - spec.wheelbase / 2 + 0.05;
@@ -406,6 +431,7 @@
     blackout: rgb('#15171c'), garnish: rgb('#1d2026'), handle: rgb('#24272e'), grille: rgb('#0e1014'), grilleBar: rgb('#3a3e46'),
     chrome: rgb('#c9ced6'), under: rgb('#0b0c10'), tire: rgb('#17181c'), plate: rgb('#e6e2d3'),
     head: rgb('#fff4c7'), tail: rgb('#d6332f'), signal: rgb('#f0a63a'),
+    tread: rgb('#26272c'), reverse: rgb('#ebe8e0'), reflector: rgb('#6d1117'), plateText: rgb('#24356a'),
   };
   const PAINT_FAMILY = new Set([M.paint, M.roof, M.pillar, M.mirror, M.seam, M.wing]);
 
@@ -454,6 +480,8 @@
         if (m === M.head) { em = 0.8; sp = 0.6; }
         else if (m === M.tail) { em = 0.55; sp = 0.5; }
         else if (m === M.signal) { em = 0.4; sp = 0.5; }
+        else if (m === M.reverse) { em = 0.25; sp = 0.6; }
+        else if (m === M.reflector) { em = 0.15; sp = 0.5; }
         else if (m === M.chrome) sp = 1;
         else if (m === M.plate) sp = 0.15;
       }
