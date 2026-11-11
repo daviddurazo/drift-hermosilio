@@ -72,6 +72,94 @@
   };
   const RIM_COLORS = ['#3a3e47', '#8a8f96', '#c9ced4', '#c99a3c'];
 
+  // ---- luces de neón debajo del carro ----
+  // Precio fijo (no cambia con el taller ni con el carro). Cambiar de color es gratis; los patrones se compran una vez por carro.
+  const NEON = {
+    kits: {
+      estatico: { name: 'Estáticas', price: 400, desc: 'Un color fijo' },
+      dinamico: { name: 'Dinámicas', price: 1600, desc: 'De 1 a 3 colores que cambian con un patrón' },
+    },
+    patternPrice: 10,
+    maxColors: 3,
+    colors: ['#ff2d55', '#ff7a1a', '#ffd60a', '#39ff14', '#00f5d4', '#38bdf8', '#3a5bff', '#9b5cff', '#ff3df2', '#ffffff'],
+    patterns: {
+      respirar: { name: 'Respirar', desc: 'Prende y apaga suave; cambia de color en cada respiro' },
+      ciclo: { name: 'Ciclo', desc: 'Pasa de un color a otro poco a poco' },
+      estrobo: { name: 'Estrobo', desc: 'Ráfagas de destellos rápidos' },
+      ola: { name: 'Ola', desc: 'Los colores corren alrededor del carro' },
+      persecucion: { name: 'Persecución', desc: 'Una luz con estela le da vueltas al carro' },
+      latido: { name: 'Latido', desc: 'Doble pulso, como corazón' },
+      alternar: { name: 'Alternar', desc: 'Adelante y atrás se turnan' },
+    },
+  };
+  const defaultNeon = () => ({ mode: 'ninguno', colors: [NEON.colors[5]], pattern: 'respirar', patterns: [] });
+  // completa lo que falte (partidas viejas o datos a medias)
+  function neonOf(t) {
+    const n = Object.assign(defaultNeon(), (t && t.neon) || {});
+    if (!n.colors.length) n.colors = [NEON.colors[5]];
+    if (!NEON.patterns[n.pattern]) n.pattern = 'respirar';
+    return n;
+  }
+
+  const rgbCache = new Map();
+  function rgb01(hex) {
+    if (!rgbCache.has(hex)) { const n = parseInt(hex.slice(1), 16); rgbCache.set(hex, [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255]); }
+    return rgbCache.get(hex);
+  }
+  const mixRGB = (a, b, f) => [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f, a[2] + (b[2] - a[2]) * f];
+  const smooth = (f) => f * f * (3 - 2 * f);
+
+  // color e intensidad de la luz en el tiempo t (s) y en la posición s (0..1, vuelta al carro desde el frente)
+  // devuelve [r, g, b, intensidad] en 0..1, o null si no tiene luces
+  function neonSample(n, t, s) {
+    if (!n || n.mode === 'ninguno' || !n.colors || !n.colors.length) return null;
+    const C = n.colors.map(rgb01), k = C.length;
+    const pick = (i) => C[((i % k) + k) % k];
+    if (n.mode === 'estatico') return [...C[0], 1];
+    switch (n.pattern) {
+      case 'ciclo': {
+        const ph = t / 1.8, i = Math.floor(ph);
+        return [...mixRGB(pick(i), pick(i + 1), smooth(ph - i)), 1];
+      }
+      case 'estrobo': {
+        const i = Math.floor(t / 1.2), c = t % 1.2;
+        return [...pick(i), c < 0.6 && c % 0.15 < 0.07 ? 1 : 0.06];
+      }
+      case 'ola': {
+        const u = (((s - t * 0.3) % 1) + 1) % 1 * k, i = Math.floor(u);
+        return [...mixRGB(pick(i), pick(i + 1), smooth(u - i)), 1];
+      }
+      case 'persecucion': {
+        const head = (t * 0.7) % 1, d = (((head - s) % 1) + 1) % 1; // d: qué tan atrás de la punta
+        return [...pick(Math.floor(t * 0.7)), 0.1 + 0.9 * Math.exp(-d * 5)];
+      }
+      case 'latido': {
+        const ph = t / 1.1, i = Math.floor(ph), f = ph - i;
+        const b = Math.exp(-(((f - 0.08) / 0.05) ** 2)) + 0.7 * Math.exp(-(((f - 0.3) / 0.05) ** 2));
+        return [...pick(i), 0.1 + 0.9 * Math.min(1, b)];
+      }
+      case 'alternar': {
+        const i = Math.floor(t / 0.45), front = s < 0.25 || s >= 0.75;
+        if (k === 1) return [...C[0], (i + (front ? 0 : 1)) % 2 ? 1 : 0.1];
+        return [...pick(i + (front ? 0 : 1)), 1];
+      }
+      default: { // respirar
+        const ph = t / 2.4, i = Math.floor(ph);
+        return [...pick(i), 0.15 + 0.85 * Math.sin(Math.PI * (ph - i)) ** 2];
+      }
+    }
+  }
+  // 8 focos alrededor del carro, en coordenadas del carro (x al frente, y de lado), con su color en el tiempo t
+  function neonSpots(n, t, L, W) {
+    if (!n || n.mode === 'ninguno') return null;
+    const a = L / 2 - 0.25, b = W / 2 + 0.1, q = L / 4;
+    const pos = [[a, 0], [q, b], [0, b + 0.05], [-q, b], [-a, 0], [-q, -b], [0, -b - 0.05], [q, -b]];
+    return pos.map(([x, y], i) => {
+      const c = neonSample(n, t, i / 8);
+      return { x, y, r: c[0], g: c[1], b: c[2], i: c[3] };
+    });
+  }
+
   // especificación del carro con el tuneo aplicado (lo que lee la física)
   function apply(base, t) {
     const s = Object.assign({}, base);
@@ -145,5 +233,5 @@
   const CAR_FACTOR = { pitic: 0.85, mezquite: 1.0, choya: 1.2 };
   const price = (base, shop, carId) => Math.round(base * shop.mult * (CAR_FACTOR[carId] || 1) / 50) * 50;
 
-  window.HmoTuning = { PARTS, PART_KEYS, DRIVES, PAINT_COLORS, FINISHES, WRAPS, RIM_COLORS, apply, normalShops, hiddenShops, shopOffers, price, rng };
+  window.HmoTuning = { PARTS, PART_KEYS, DRIVES, PAINT_COLORS, FINISHES, WRAPS, RIM_COLORS, NEON, defaultNeon, neonOf, neonSample, neonSpots, apply, normalShops, hiddenShops, shopOffers, price, rng };
 })();

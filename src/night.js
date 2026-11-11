@@ -38,6 +38,29 @@
     return cv;
   }
 
+  // brillo de un color (neones); se guardan en caché con el color redondeado a 8 niveles por canal
+  const glowCache = new Map();
+  function glow(r, g, b) {
+    const q = (v) => Math.max(0, Math.min(7, Math.round(v * 7)));
+    const key = (q(r) << 6) | (q(g) << 3) | q(b);
+    if (!glowCache.has(key)) {
+      const c = (v) => Math.round(q(v) / 7 * 255);
+      const rgb = `${c(r)},${c(g)},${c(b)}`;
+      glowCache.set(key, radial(64, [[0, `rgba(${rgb},0.85)`], [0.45, `rgba(${rgb},0.35)`], [1, `rgba(${rgb},0)`]]));
+    }
+    return glowCache.get(key);
+  }
+  // brillo de neón en el piso; ctx ya debe estar en coordenadas del carro (metros, x al frente)
+  function drawNeon(ctx, spots, size, alpha) {
+    if (!spots) return;
+    for (const p of spots) {
+      if (p.i < 0.02) continue;
+      ctx.globalAlpha = Math.min(1, p.i * alpha);
+      ctx.drawImage(glow(p.r, p.g, p.b), p.x - size / 2, p.y - size / 2, size, size);
+    }
+    ctx.globalAlpha = 1;
+  }
+
   class Night {
     constructor(map, tileM) {
       this.cv = document.createElement('canvas');
@@ -113,6 +136,14 @@
         g.save(); g.translate(car.x, car.y); g.rotate(car.h);
         g.drawImage(this.beam, car.s.length / 2 - 0.4, -11, 34, 22);
         g.drawImage(this.cut, -4, -4, 8, 8); // un poco de luz alrededor del carro
+        if (car.neon) {
+          for (const p of car.neon) {
+            if (p.i < 0.02) continue;
+            g.globalAlpha = Math.min(1, p.i * 0.8);
+            g.drawImage(this.cut, p.x - 2.6, p.y - 2.6, 5.2, 5.2);
+          }
+          g.globalAlpha = 1;
+        }
         g.restore();
       }
 
@@ -141,6 +172,7 @@
         const br = car.braking ? 2.6 : 1.4;
         ctx.drawImage(this.red, -L2 - br / 2, -W2 + 0.2 - br / 2, br, br);
         ctx.drawImage(this.red, -L2 - br / 2, W2 - 0.2 - br / 2, br, br);
+        drawNeon(ctx, car.neon, 3.4, 0.45); // un poco de luz de color encima, como reflejo
         ctx.restore();
       }
       ctx.restore();
@@ -154,5 +186,5 @@
     }
   }
 
-  window.HmoNight = { Night };
+  window.HmoNight = { Night, glow, drawNeon };
 })();

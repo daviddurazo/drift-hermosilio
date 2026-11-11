@@ -73,6 +73,12 @@
       installed(id);
       G.showToast('¡Quedó pintado!');
     },
+    buyNeon: (id, neon, price) => {
+      if (!canTune(id, price)) return;
+      save.money -= price; save.tuning[id].neon = neon;
+      installed(id);
+      G.showToast(neon.mode === 'ninguno' ? 'Quitaste las luces de neón' : price ? '¡Neones instalados!' : 'Neones actualizados');
+    },
     closed: () => { G.keys.clear(); },
   });
   function openShop(sh) { G.keys.clear(); car.vx = car.vy = car.w = 0; shopUI.open(sh); }

@@ -28,13 +28,15 @@
     G.drawShops(ctx, R);
     G.drawMeet(ctx);
     drawHome();
-    drawCar();
+    // neones del carro: el mismo color en el piso, en la noche y en la vitrina
+    const neon = HmoTuning.neonSpots(HmoTuning.neonOf(save.tuning[save.current]), performance.now() / 1000, car.s.length, car.s.width);
+    drawCar(neon);
     G.drawSmoke(ctx);
 
     // de noche siempre: oscuridad con postes, faros y gasolineras; la ruta va encima para que se vea
     const meet = G.activeMeet();
     G.night.draw(ctx, vw, vh, cam.x, cam.y, R * 0.6 + 20, {
-      cars: [{ x: car.x, y: car.y, h: car.h, s: car.s, braking: G.lastInput.brake > 0 && car.tel.u > 0.5 }],
+      cars: [{ x: car.x, y: car.y, h: car.h, s: car.s, braking: G.lastInput.brake > 0 && car.tel.u > 0.5, neon }],
       stations: G.STATIONS.map((st) => st.c).concat(G.visibleShops().map((sh) => [sh.x, sh.y]), meet ? [[meet.x, meet.y]] : []),
     });
     G.drawRoute(ctx);
@@ -54,10 +56,18 @@
     ctx.restore();
   }
 
-  function drawCar() {
+  function drawCar(neon) {
     const s = car.s, L = s.length, W = s.width;
     ctx.save();
     ctx.translate(car.x, car.y);
+    // luz de neón en el piso (abajo del carro, sale por los lados)
+    if (neon) {
+      ctx.save();
+      ctx.rotate(car.h);
+      ctx.globalCompositeOperation = 'lighter';
+      HmoNight.drawNeon(ctx, neon, 4.2, 1);
+      ctx.restore();
+    }
     // sombra fija hacia el sureste, como la del mapa
     ctx.save();
     ctx.translate(0.35, 0.5);

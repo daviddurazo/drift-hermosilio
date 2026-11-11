@@ -43,6 +43,18 @@
       float d = pow(pow(q.x, 4.0) + pow(q.y, 4.0), 0.25);
       gl_FragColor = vec4(0.0, 0.0, 0.0, (1.0 - smoothstep(0.45, 1.0, d)) * uA);
     }`;
+  // neón: luz de color en el piso, suma de 8 focos alrededor del carro
+  const NVS = `
+    attribute vec2 aQ; uniform mat4 uVP; uniform mat4 uM; uniform vec2 uSize; varying vec2 vP;
+    void main() { vP = aQ * uSize; gl_Position = uVP * uM * vec4(vP.x, 0.006, vP.y, 1.0); }`;
+  const NFS = `
+    precision mediump float; uniform vec4 uS[8]; uniform vec2 uSP[8]; varying vec2 vP;
+    void main() {
+      vec3 c = vec3(0.0);
+      for (int i = 0; i < 8; i++) { vec2 d = vP - uSP[i]; c += uS[i].rgb * uS[i].a * exp(-dot(d, d) / 0.8); }
+      c = min(c * 0.9, vec3(1.0));
+      gl_FragColor = vec4(c, max(c.r, max(c.g, c.b)));
+    }`;
 
   function program(gl, vs, fs) {
     const mk = (type, src) => {
@@ -58,7 +70,7 @@
     const loc = {};
     const na = gl.getProgramParameter(p, gl.ACTIVE_ATTRIBUTES), nu = gl.getProgramParameter(p, gl.ACTIVE_UNIFORMS);
     for (let i = 0; i < na; i++) { const a = gl.getActiveAttrib(p, i).name; loc[a] = gl.getAttribLocation(p, a); }
-    for (let i = 0; i < nu; i++) { const u = gl.getActiveUniform(p, i).name; loc[u] = gl.getUniformLocation(p, u); }
+    for (let i = 0; i < nu; i++) { const u = gl.getActiveUniform(p, i).name.replace(/\[0\]$/, ''); loc[u] = gl.getUniformLocation(p, u); }
     return { p, loc };
   }
 
@@ -128,6 +140,7 @@
         try {
           this.prog = program(gl, VS, FS);
           this.shadow = program(gl, SVS, SFS);
+          this.neonProg = program(gl, NVS, NFS);
           this.quad = gl.createBuffer();
           gl.bindBuffer(gl.ARRAY_BUFFER, this.quad);
           gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, 1, 1, -1, -1, 1, 1, -1, 1]), gl.STATIC_DRAW);
@@ -313,6 +326,7 @@
         gl.drawArrays(gl.TRIANGLES, 0, 6);
       }
       gl.disableVertexAttribArray(S.loc.aQ);
+      this.drawNeon(visible, vp, cam);
 
       // carros
       gl.disable(gl.BLEND);
@@ -337,6 +351,34 @@
         gl.drawArrays(gl.TRIANGLES, 0, g.mesh.verts);
       }
       for (const k of ['aPos', 'aNor', 'aAO', 'aCol', 'aES']) gl.disableVertexAttribArray(Lc[k]);
+    }
+
+    // luces de neón de los carros que tienes
+    drawNeon(visible, vp, cam) {
+      const gl = this.gl, N = this.neonProg, t = performance.now() / 1000;
+      const lit = visible.filter((o) => o.it.owned && o.it.neon && o.it.neon.mode !== 'ninguno');
+      if (!lit.length) return;
+      gl.useProgram(N.p);
+      gl.uniformMatrix4fv(N.loc.uVP, false, vp);
+      gl.bindBuffer(gl.ARRAY_BUFFER, this.quad);
+      gl.enableVertexAttribArray(N.loc.aQ);
+      gl.vertexAttribPointer(N.loc.aQ, 2, gl.FLOAT, false, 0, 0);
+      const col = new Float32Array(32), pos = new Float32Array(16);
+      for (const o of lit) {
+        const m = this.gpu.get(o.it.id).mesh;
+        const spots = HmoTuning.neonSpots(o.it.neon, t, m.length, m.width);
+        const dim = 1 - Math.min(1, Math.abs(o.off)) * 0.45;
+        spots.forEach((p, i) => {
+          col.set([p.r, p.g, p.b, p.i * dim], i * 4);
+          pos.set([p.x, p.y], i * 2);
+        });
+        gl.uniform4fv(N.loc.uS, col);
+        gl.uniform2fv(N.loc.uSP, pos);
+        gl.uniformMatrix4fv(N.loc.uM, false, model(o.off * cam.spacing, this.yaw));
+        gl.uniform2f(N.loc.uSize, m.length / 2 + 1.6, m.width / 2 + 1.6);
+        gl.drawArrays(gl.TRIANGLES, 0, 6);
+      }
+      gl.disableVertexAttribArray(N.loc.aQ);
     }
 
     // sin WebGL: el dibujo plano de siempre, visto desde arriba

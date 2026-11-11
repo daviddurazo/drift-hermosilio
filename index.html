@@ -171,6 +171,8 @@
   .swatch { width: 30px; height: 30px; padding: 0; border-radius: 50%; border: 2px solid rgba(255,255,255,0.25); }
   .swatch[aria-pressed="true"] { border-color: #fff; box-shadow: 0 0 0 2px var(--accent); }
   .pint-act { margin-top: 6px; }
+  .swatch.neon { font: 700 13px var(--display); color: #10121a; box-shadow: 0 0 10px -2px var(--glow); }
+  .swatch.neon[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--accent), 0 0 16px 2px var(--glow); }
 
   .fundido { position: fixed; inset: 0; z-index: 28; background: #0d0f16; display: flex; align-items: center; justify-content: center; }
   .fundido p { font-family: var(--display); font-size: 22px; font-weight: 700; color: var(--accent); }

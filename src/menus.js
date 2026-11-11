@@ -43,7 +43,7 @@
     return box;
   }
 
-  // carros para la vitrina 3D; preview = { id, paint } para probar pintura sin comprarla
+  // carros para la vitrina 3D; preview = { id, paint, neon } para probar pintura o neones sin comprarlos
   function showItems(st, preview) {
     return CARS.map((c) => {
       const own = st.owned.includes(c.id);
@@ -52,7 +52,8 @@
       const price = P.ECON.carPrice[c.id] || 0;
       return {
         id: c.id, spec: c, owned: own,
-        paint: preview && preview.id === c.id ? preview.paint : tun.paint,
+        paint: preview && preview.id === c.id && preview.paint ? preview.paint : tun.paint,
+        neon: preview && preview.id === c.id && preview.neon ? preview.neon : T.neonOf(tun),
         rim: T.RIM_COLORS[tun.rines || 0],
         badge: !own ? `No lo tienes · ${P.money(price)}` : parked ? 'En el meet' : c.id === st.current ? 'En uso' : 'Tuyo',
         badgeType: !own ? 'bloqueado' : c.id === st.current ? 'uso' : 'tuyo',
@@ -146,7 +147,13 @@
         const li = h('li');
         li.append(h('span', null, T.PARTS[k].label), h('b', null, tun[k] ? T.PARTS[k].opts[tun[k] - 1].name : 'De fábrica'));
         return li;
-      }));
+      }), (() => {
+        const n = T.neonOf(tun), li = h('li');
+        const txt = n.mode === 'ninguno' ? 'No tiene' : n.mode === 'estatico' ? 'Estáticas'
+          : `Dinámicas · ${T.NEON.patterns[n.pattern].name}`;
+        li.append(h('span', null, 'Neón'), h('b', null, txt));
+        return li;
+      })());
 
       // comprar el carro elegido si no es tuyo
       const buy = $('t-comprar');
@@ -162,7 +169,7 @@
   }
 
   // =================== taller de tuneo ===================
-  const TABS = [['motor', 'Motor'], ['llantas', 'Llantas'], ['suspension', 'Suspensión'], ['frenos', 'Frenos'], ['rines', 'Rines'], ['traccion', 'Tracción'], ['pintura', 'Pintura']];
+  const TABS = [['motor', 'Motor'], ['llantas', 'Llantas'], ['suspension', 'Suspensión'], ['frenos', 'Frenos'], ['rines', 'Rines'], ['traccion', 'Tracción'], ['pintura', 'Pintura'], ['neon', 'Neón']];
 
   class Shop {
     constructor(api) {
@@ -171,16 +178,17 @@
       this.shop = null;
       this.tab = 'motor';
       this.paint = null; // pintura en prueba
+      this.neon = null;  // neones en prueba
       $('s-salir').onclick = () => this.close();
       this.sel = null; // carro que estás tuneando (puede ser cualquiera de los tuyos)
       this.show = new HmoShowroom.Showroom($('s-vista'), {
-        onSelect: (id) => { this.sel = id; this.paint = null; this.render(); },
+        onSelect: (id) => { this.sel = id; this.paint = null; this.neon = null; this.render(); },
       });
       addEventListener('keydown', (e) => { const d = this.isOpen && arrowStep(e); if (d) this.show.step(d); });
     }
     get isOpen() { return !this.root.hidden; }
     open(shop) {
-      this.shop = shop; this.tab = 'motor'; this.paint = null;
+      this.shop = shop; this.tab = 'motor'; this.paint = null; this.neon = null;
       this.sel = this.api.state().current;
       this.root.hidden = false;
       this.render();
@@ -200,7 +208,7 @@
       $('s-dinero').textContent = P.money(st.money);
       $('s-carro').textContent = spec.name + (carId === st.current ? ' (el que traes)' : owned ? ' (te lo llevan a tu casa)' : '');
 
-      this.show.setItems(showItems(st, this.paint && { id: carId, paint: this.paint }));
+      this.show.setItems(showItems(st, { id: carId, paint: this.paint, neon: this.neon }));
       this.show.select(carId);
 
       const tabs = $('s-tabs');
@@ -208,7 +216,7 @@
         const b = h('button', null, label);
         b.type = 'button';
         b.setAttribute('aria-pressed', String(this.tab === k));
-        b.onclick = () => { this.tab = k; this.paint = null; this.render(); };
+        b.onclick = () => { this.tab = k; this.paint = null; this.neon = null; this.render(); };
         return b;
       }));
 
@@ -262,6 +270,8 @@
           row.append(info, btn);
           return row;
         }));
+      } else if (this.tab === 'neon') {
+        this.renderNeon(box, st, tun, carId);
       } else {
         this.renderPaint(box, st, spec, tun, shop, off, carId);
       }
@@ -331,6 +341,112 @@
       box.replaceChildren(wrap);
     }
   }
+
+  // ---------- neones ----------
+  // precio de pasar de lo instalado (cur) a lo elegido (n): el kit si cambia de tipo, y el patrón si no lo tenías
+  function neonPrice(cur, n) {
+    let p = 0;
+    if (n.mode !== 'ninguno' && n.mode !== cur.mode) p += T.NEON.kits[n.mode].price;
+    if (n.mode === 'dinamico' && !cur.patterns.includes(n.pattern)) p += T.NEON.patternPrice;
+    return p;
+  }
+  const sameNeon = (a, b) => a.mode === b.mode && (a.mode === 'ninguno' ||
+    (a.colors.join() === b.colors.join() && (a.mode !== 'dinamico' || a.pattern === b.pattern)));
+
+  Shop.prototype.renderNeon = function (box, st, tun, carId) {
+    const cur = T.neonOf(tun);
+    const n = this.neon || JSON.parse(JSON.stringify(cur));
+    this.neon = n;
+    const N = T.NEON;
+    const wrap = h('div', 'pintura');
+
+    // tipo
+    wrap.append(h('p', 'pint-label', 'Luces debajo del carro'));
+    const modes = h('div', 'row');
+    for (const [k, label] of [['ninguno', 'Sin luces'], ['estatico', 'Estáticas'], ['dinamico', 'Dinámicas']]) {
+      const kit = N.kits[k];
+      const b = h('button', null, label + (kit && cur.mode !== k ? ` · ${P.money(kit.price)}` : ''));
+      b.type = 'button';
+      b.setAttribute('aria-pressed', String(n.mode === k));
+      b.onclick = () => {
+        n.mode = k;
+        if (k === 'estatico') n.colors = n.colors.slice(0, 1);
+        this.render();
+      };
+      modes.append(b);
+    }
+    wrap.append(modes);
+    if (n.mode !== 'ninguno') wrap.append(h('p', 'pant-sub', N.kits[n.mode].desc + '. Cambiar de color después es gratis.'));
+
+    if (n.mode !== 'ninguno') {
+      // colores: estáticas 1; dinámicas de 1 a 3, en orden
+      const dyn = n.mode === 'dinamico';
+      wrap.append(h('p', 'pint-label', dyn ? `Colores (de 1 a ${N.maxColors}, en orden)` : 'Color'));
+      const sw = h('div', 'swatches');
+      for (const c of N.colors) {
+        const idx = n.colors.indexOf(c);
+        const b = h('button', 'swatch neon', dyn && idx >= 0 ? String(idx + 1) : '');
+        b.type = 'button';
+        b.style.background = c;
+        b.style.setProperty('--glow', c);
+        b.setAttribute('aria-label', 'Color ' + c);
+        b.setAttribute('aria-pressed', String(idx >= 0));
+        b.onclick = () => {
+          if (!dyn) n.colors = [c];
+          else if (idx >= 0) { if (n.colors.length > 1) n.colors.splice(idx, 1); }
+          else if (n.colors.length < N.maxColors) n.colors.push(c);
+          else n.colors[n.colors.length - 1] = c; // ya hay 3: cambia el último
+          this.render();
+        };
+        sw.append(b);
+      }
+      wrap.append(sw);
+
+      // patrones (solo dinámicas): se compran una vez por carro
+      if (dyn) {
+        wrap.append(h('p', 'pint-label', `Patrón (${P.money(N.patternPrice)} cada uno, se quedan en tu carro)`));
+        const list = h('div', 'opciones-lista');
+        for (const [k, pat] of Object.entries(N.patterns)) {
+          const own = cur.patterns.includes(k);
+          const row = h('div', 'opcion');
+          const info = h('div', 'opcion-info');
+          info.append(h('b', null, pat.name), h('span', null, pat.desc));
+          const b = h('button', null, n.pattern === k ? 'Elegido' : own ? 'Tuyo · elegir' : `Probar · ${P.money(N.patternPrice)}`);
+          b.type = 'button';
+          b.setAttribute('aria-pressed', String(n.pattern === k));
+          b.onclick = () => { n.pattern = k; this.render(); };
+          row.append(info, b);
+          list.append(row);
+        }
+        wrap.append(list);
+      }
+    }
+
+    // precio y botones
+    const same = sameNeon(n, cur);
+    const price = neonPrice(cur, n);
+    const act = h('div', 'row pint-act');
+    const label = same ? (cur.mode === 'ninguno' ? 'Elige un tipo de luces' : 'Así las tienes')
+      : n.mode === 'ninguno' ? 'Quitar luces' : price ? `Instalar · ${P.money(price)}` : 'Guardar cambios (gratis)';
+    const buy = h('button', 'primary', label);
+    buy.type = 'button';
+    buy.disabled = same || st.money < price;
+    if (!same && st.money < price) buy.title = 'Te falta dinero';
+    buy.onclick = () => {
+      const out = { mode: n.mode, colors: n.colors.slice(), pattern: n.pattern, patterns: cur.patterns.slice() };
+      if (n.mode === 'dinamico' && !out.patterns.includes(n.pattern)) out.patterns.push(n.pattern);
+      this.api.buyNeon(carId, out, price);
+      this.neon = null;
+      this.render();
+    };
+    const reset = h('button', null, 'Deshacer cambios');
+    reset.type = 'button';
+    reset.disabled = same;
+    reset.onclick = () => { this.neon = null; this.render(); };
+    act.append(buy, reset);
+    wrap.append(act);
+    box.replaceChildren(wrap);
+  };
 
   window.HmoMenus = { Garage, Shop };
 })();

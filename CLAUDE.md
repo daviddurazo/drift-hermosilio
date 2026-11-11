@@ -38,7 +38,7 @@ python3 -I tools/build_map.py data/raw/centro_campana.json src/map.js [preview.p
 | `src/streets.js` | `HmoStreets`: nombre de la calle más cercana |
 | `src/fullmap.js` | `HmoFullMap`: mapa completo a pantalla entera (arrastrar, zoom, elegir destino o casa) |
 | `src/progress.js` | `HmoProgress`: partida en localStorage (`hmo.partida.v1`), `ECON` (todos los números de economía), niveles de Street XP, `farmRate`, `parkedXP` |
-| `src/tuning.js` | `HmoTuning`: catálogo de piezas, `apply(spec, tuning)`, pintura, talleres normales y escondidos, precios |
+| `src/tuning.js` | `HmoTuning`: catálogo de piezas, `apply(spec, tuning)`, pintura, neones (`NEON`, `neonOf`, `neonSpots`: color de 8 focos alrededor del carro en el tiempo t, lo usan el juego y la vitrina), talleres normales y escondidos, precios |
 | `src/drift.js` | `HmoDrift.DriftScore`: puntos por ángulo, velocidad y duración, con cadenas |
 | `src/menus.js` | `HmoMenus`: pantallas de tu taller (casa) y del taller de tuneo (solo DOM). Las dos usan la vitrina 3D; en el taller de tuneo puedes tunear cualquiera de tus carros, no solo el que traes |
 | `src/game.js` | Bucle principal: física fija a 120 Hz y orden de cada cuadro (rutas, meets, talleres, cámara, dibujo, HUD). Corto a propósito |
@@ -74,6 +74,7 @@ python3 -I tools/build_map.py data/raw/centro_campana.json src/map.js [preview.p
 - **Dinero:** sale de los puntos de drift ($0.50/pt). Empiezas con $5,000 y el Ba-tsuru. Mezquite $45k, Hondiablo $85k. Gasolina $24/L. Grúa $300 (si no alcanza, te lleva a casa y ahí hay bidón gratis).
 - **Street XP:** es el prestigio. Se gana sobre todo en **meets**: 120 XP al llegar y luego XP por minuto estacionado. Puedes **dejar el carro en el meet** y sigue juntando XP en tiempo real (tope 12 h); mientras esté ahí no puedes usar otro carro. Mejor carro y más tuneo farmean más. Por drift también se gana, menos: 1 XP por cada 40 pts.
 - **Talleres:** 9 normales (3 por nivel; en cada nivel uno barato, uno normal y uno caro). 3 escondidos de calidad que cambian de lugar cada 20 min de juego y solo aparecen al pasar cerca. Cada pieza tiene 3 opciones. Hay cambio de tracción, y pintura con paleta, acabado y wrap.
+- **Neones (luces debajo del carro):** estáticas $400 (1 color) o dinámicas $1,600 (1 a 3 colores + patrón). Cada patrón cuesta $10 y se compra una vez por carro; cambiar de color es gratis. Precio fijo, no cambia con el taller ni con el carro. En `save.tuning[id].neon = { mode, colors, pattern, patterns }`. Suben un poco el XP del meet (+5 % / +10 %).
 - **Noche siempre:** postes cada ~30 m; grupos apagados de 2 a 5 postes vecinos.
 - **Mapa:** el usuario quiere elegir casa y destinos desde el mapa completo, no desde el minimapa.
 

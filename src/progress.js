@@ -34,7 +34,9 @@
     const t = tuning || {};
     const tiers = ['motor', 'llantas', 'suspension', 'frenos', 'rines'].reduce((a, k) => a + (t[k] || 0), 0);
     const paint = t.paint || {};
-    const look = (paint.finish === 'perlado' ? 0.1 : paint.finish === 'metalico' ? 0.05 : 0) + (paint.wrap && paint.wrap !== 'ninguno' ? 0.1 : 0);
+    const neon = (t.neon && t.neon.mode) || 'ninguno';
+    const look = (paint.finish === 'perlado' ? 0.1 : paint.finish === 'metalico' ? 0.05 : 0) + (paint.wrap && paint.wrap !== 'ninguno' ? 0.1 : 0) +
+      (neon === 'dinamico' ? 0.1 : neon === 'estatico' ? 0.05 : 0);
     return ECON.farmBase * (ECON.carXPFactor[carId] || 1) * (1 + 0.08 * tiers + look);
   }
   // XP que juntó el carro dejado en el meet (tiempo real, con tope)
@@ -46,7 +48,11 @@
 
   function defaultPaint(spec) { return { color: spec.color, finish: 'solido', wrap: 'ninguno' }; }
   function defaultTuning(spec) {
-    return { motor: 0, llantas: 0, suspension: 0, frenos: 0, rines: 0, drive: null, paint: defaultPaint(spec) };
+    return {
+      motor: 0, llantas: 0, suspension: 0, frenos: 0, rines: 0, drive: null, paint: defaultPaint(spec),
+      // luces de neón: 'ninguno' | 'estatico' | 'dinamico'; patterns = patrones ya comprados
+      neon: { mode: 'ninguno', colors: ['#38bdf8'], pattern: 'respirar', patterns: [] },
+    };
   }
 
   function fresh(cars) {
