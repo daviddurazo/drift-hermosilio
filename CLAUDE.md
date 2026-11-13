@@ -5,18 +5,18 @@ Juego de drift 2D en vista aérea sobre el mapa real del centro de Hermosillo y 
 ## Cómo correrlo
 
 - Abrir `index.html` en el navegador (`open index.html`). No hay build ni servidor: funciona con `file://`.
-- `mapa.html` es un visor del mapa (sin juego), útil para revisar la conversión.
-- Scripts clásicos (`<script src>`), **no módulos ES** (con `file://` se bloquean). Cada archivo es una IIFE que publica un global `window.Hmo*`. El orden de los `<script>` en `index.html` importa: `src/game/core.js` va primero de los de `src/game/` y `src/game.js` al final. Dentro de `src/game/` el orden solo importa para lo que corre al cargar (lo que se llama después pasa por G).
+- `tools/mapa.html` es un visor del mapa (sin juego), útil para revisar la conversión.
+- Scripts clásicos (`<script src>`), **no módulos ES** (con `file://` se bloquean). Cada archivo es una IIFE que publica un global `window.Hmo*`. El orden de los `<script>` en `index.html` importa y va por carpetas: `world` → `engine` → `cars` → `characters` → `gameplay` → `ui` → `game`. En `cars/`, `registry.js` va primero, luego la carpeta de cada carro y al final lo común (`sprites.js`, `model3d.js`…). En `game/`, `core.js` va primero y `main.js` al final; entre ellos el orden solo importa para lo que corre al cargar (lo que se llama después pasa por G).
 - Git: rama `main`, remoto `origin` en GitHub. El usuario hace los commits y los push; solo darle los comandos, salvo que pida lo contrario.
 
 ## Regenerar el mapa
 
 ```
-python3 -I tools/build_map.py data/raw/centro_campana.json src/map.js [preview.png]
+python3 -I tools/build_map.py data/raw/centro_campana.json src/world/map.js [preview.png]
 ```
 
 - Lee `data/raw/centro_campana.json` (Overpass) y, en la misma carpeta, `gasolineras.json` y `talleres.json`.
-- Escribe `src/map.js` (`window.HMO_MAP`): tiles en RLE base64 más `pois`.
+- Escribe `src/world/map.js` (`window.HMO_MAP`): tiles en RLE base64 más `pois`.
 - Requiere numpy y PIL. Tarda ~3 s.
 - Regenerar puede mover gasolineras y talleres generados; la casa guardada del jugador se queda donde estaba.
 - Ancho de calles: `ROAD_WIDTH_M` (metros reales por tipo) × `ROAD_SCALE` (1.35; las de servicio no se escalan). Se redondea a tiles de 3 m: una residencial queda de 4 tiles (12 m).
@@ -24,44 +24,72 @@ python3 -I tools/build_map.py data/raw/centro_campana.json src/map.js [preview.p
 
 ## Archivos
 
+```
+index.html            el juego
+README.md             para quien llega al repo (público)
+docs/ideas.md         lista de ideas del usuario. Revisarla antes de proponer qué sigue
+data/raw/             datos de OpenStreetMap (Overpass) que lee build_map.py
+tools/                build_map.py, mapa.html (visor) y prototypes/ (pruebas sueltas, no son parte del juego)
+src/
+  world/              el mapa y lo que vive en él
+  engine/             motor 3D propio (cubitos y WebGL)
+  cars/               los carros: registro, una carpeta por carro y lo común a todos
+    ba-tsuru/         car.js (ficha + silueta) y voxels.js (modelo hecho a mano)
+    mezquite-sr/      car.js
+    hondiablo-si/     car.js
+  characters/         personajes de cubitos
+  gameplay/           reglas: partida, economía, puntos de drift
+  ui/                 pantallas y escenas (DOM y vitrinas 3D)
+  game/               el juego en marcha (G), partido por tema; main.js es el bucle
+```
+
 | Archivo | Qué hace |
 |---|---|
 | `tools/build_map.py` | OSM → tiles (3 m/tile, 1168×1180). Calles por tipo, banquetas, edificios (4 variantes de azotea 30–33), cerro en terrazas (20–24), estacionamientos conectados (camino de 2×2 tiles, se vale diagonal), gasolineras con patio de 4 lugares, talleres, postes de luz con grupos apagados, nombres de calles, lugares de meet y escondites |
-| `src/map.js` | Generado. No editar a mano |
-| `src/tiles.js` | `Hmo`: ids de tiles, `HmoMap` (decodifica, `get`, `solid`, `name`), `Renderer` (dibuja en bloques de 32×32 tiles cacheados; de lejos usa una imagen de 1 px por tile) |
-| `src/cars.js` | `HmoCars`: especificación de los 3 carros y `makeSprite(spec, paint)` (pintura, acabado, wrap) |
-| `src/model3d.js` | `HmoModel3D`: carros en 3D hechos de vóxeles (cubitos de 6 cm) a partir de su silueta lateral (`MODELS`, en metros desde la defensa trasera). `build(spec)` da la malla; `colors(mesh, spec, paint, rim)` aplica pintura, acabado, wrap y rines. También tiene el mallador genérico: `voxelFaces` (caras visibles con oclusión ambiental) y `fromBoxes(cajas, vox, keepY, noBottom)` para personajes y escenario |
-| `src/batsuru3d.js` | `HmoBatsuru3D`: el Ba-tsuru hecho a mano cubito por cubito (5 cm; 4.35 × 1.70 × 1.40 m) con juntas, moldura, manijas, espejos, antena, faros con divisor, calaveras con reversa, placas y rines tipo tapón. Va antes de `model3d.js`; `HmoModel3D.build` lo usa para `pitic` en lugar de `MODELS.pitic` (que queda de respaldo). Pintura, wraps y rines siguen funcionando porque usa los mismos materiales |
-| `src/gl3d.js` | `HmoGL`: motor WebGL propio (sin librerías) que comparten la vitrina, el editor de personaje y la escena del meet. `Renderer`: `begin(eye, target, fov)`, `meshes([{h, M}], expo)`, `shadows`, `glows` (luces de color en el piso, hasta 8 focos), `car(spec, paint, rim, slot)` (una forma por modelo, colores por lugar), `upload` / `free`. Matrices: `model(x, y, z, yaw)`, `tiltX`, `mul`. `floorDepth = true` cuando hay piso 3D |
-| `src/character.js` | `HmoCharacter`: personajes de cubitos (`OPTIONS`, `defaultLook`, `lookOf`, `randomLook(rng)`, `build(look, pose)`; poses `parado`, `cruzado` y `telefono`). Mide ~1.75 m y la cara ve a +z |
-| `src/showroom.js` | `HmoShowroom.Showroom`: vitrina con carrusel; se desliza con el dedo o el mouse, con flechas o con puntos. Los carros que no tienes salen en negro. Si no hay WebGL, usa el dibujo plano |
-| `src/meetscene.js` | `HmoMeetScene.Scene`: escena 3D del meet. Estacionamiento de noche con calle y edificios, tu carro y tú recargado, carros y gente de NPCs (semilla = número de meet) y tráfico que pasa. Se arrastra para girar la cámara. Solo es escena: el XP lo lleva `src/game/meets.js` |
-| `src/charmenu.js` | `HmoCharMenu.Editor`: editor de personaje (apodo, piel, complexión, vello facial, pelo, ropa, tenis, gorra, lentes, cadena) con vista 3D |
-| `src/physics.js` | `HmoPhysics.Car`: modelo de bicicleta, llantas con curva tipo Pacejka, círculo de fricción, transferencia de peso, ABS, freno de mano, asistencia contra trompos, choques contra tiles sólidos |
-| `src/route.js` | `HmoRoute`: A* en 8 direcciones con costo por tipo de tile (prefiere calles) |
-| `src/night.js` | `HmoNight`: capa oscura a media resolución con huecos de luz (postes, faros, gasolineras, talleres, meet) |
-| `src/streets.js` | `HmoStreets`: nombre de la calle más cercana |
-| `src/fullmap.js` | `HmoFullMap`: mapa completo a pantalla entera (arrastrar, zoom, elegir destino o casa) |
-| `src/progress.js` | `HmoProgress`: partida en localStorage (`hmo.partida.v1`), `ECON` (todos los números de economía), niveles de Street XP, `farmRate`, `parkedXP` |
-| `src/tuning.js` | `HmoTuning`: catálogo de piezas, `apply(spec, tuning)`, pintura, neones (`NEON`, `neonOf`, `neonSpots`: color de 8 focos alrededor del carro en el tiempo t, lo usan el juego y la vitrina), talleres normales y escondidos, precios |
-| `src/drift.js` | `HmoDrift.DriftScore`: puntos por ángulo, velocidad y duración, con cadenas |
-| `src/menus.js` | `HmoMenus`: pantallas de tu taller (casa) y del taller de tuneo (solo DOM). Las dos usan la vitrina 3D; en el taller de tuneo puedes tunear cualquiera de tus carros, no solo el que traes |
-| `src/game.js` | Bucle principal: física fija a 120 Hz y orden de cada cuadro (rutas, meets, talleres, cámara, dibujo, HUD). Corto a propósito |
-| `src/game/` | El resto del juego, partido por tema. Cada archivo es una IIFE que le cuelga sus funciones y estado a `window.HmoGame` (**G**), y se llaman entre sí por `G.algo()` |
-| ↳ `core.js` | Crea G: mapa, superficies, partida (`G.save`, `G.persist`, `G.home`), el carro (`G.car`, `placeCar`, `resetCar`), canvas (`G.ctx`, `G.view`), avisos (`showToast`, `popup`) |
-| ↳ `input.js` | Teclado y control (`G.keys`, `readInput`, `G.lastInput`) |
-| ↳ `camera.js` | `G.cam`, `updateCamera`, `toggleCamera` |
-| ↳ `effects.js` | Marcas de llanta y humo (`skidStep`, `resetMarks`) |
-| ↳ `fuel.js` | Gasolina, gasolineras (`G.STATIONS`, `G.fuelState`) y grúa |
-| ↳ `nav.js` | Rutas (`G.route`, `G.dest`) y casa (`setHome`, `routeHome`) |
-| ↳ `score.js` | Puntos de drift → dinero y XP (`G.driftScore`, `addXP`) |
-| ↳ `shops.js` | Talleres normales y escondidos en la ciudad |
-| ↳ `meets.js` | Meets, XP por minuto, dejar el carro, abrir y cerrar la escena (`openMeetScene`, `meetHud`) |
-| ↳ `screens.js` | Tu taller, talleres de tuneo, editor de personaje y escena del meet (`G.garage`, `G.shopUI`, `G.charEditor`, `G.meetScene`), entrar con E, `G.paused()` |
-| ↳ `maps.js` | Mapa completo (`G.fullMap`) y minimapa |
-| ↳ `draw.js` | Dibujo del mundo (`G.render`) |
-| ↳ `hud.js` | HUD y botones |
-| `ideas.md` | Lista de ideas del usuario. Revisarla antes de proponer qué sigue |
+| `tools/prototypes/tsuru-voxel.html` | Prototipo suelto del Ba-tsuru con three.js (módulos ES, necesita servidor). No lo usa el juego |
+| **world/** | |
+| `src/world/map.js` | Generado. No editar a mano |
+| `src/world/tiles.js` | `Hmo`: ids de tiles, `HmoMap` (decodifica, `get`, `solid`, `name`), `Renderer` (dibuja en bloques de 32×32 tiles cacheados; de lejos usa una imagen de 1 px por tile) |
+| `src/world/route.js` | `HmoRoute`: A* en 8 direcciones con costo por tipo de tile (prefiere calles) |
+| `src/world/night.js` | `HmoNight`: capa oscura a media resolución con huecos de luz (postes, faros, gasolineras, talleres, meet) |
+| `src/world/streets.js` | `HmoStreets`: nombre de la calle más cercana |
+| **engine/** | |
+| `src/engine/voxels.js` | `HmoVoxels`: mallador genérico de cubitos. `faces` (caras visibles con oclusión ambiental), `fromBoxes(cajas, vox, keepY, noBottom)` para personajes y escenario, `pack`, `rgb` |
+| `src/engine/gl3d.js` | `HmoGL`: motor WebGL propio (sin librerías) que comparten la vitrina, el editor de personaje y la escena del meet. `Renderer`: `begin(eye, target, fov)`, `meshes([{h, M}], expo)`, `shadows`, `glows` (luces de color en el piso, hasta 8 focos), `car(spec, paint, rim, slot)` (una forma por modelo, colores por lugar), `upload` / `free`. Matrices: `model(x, y, z, yaw)`, `tiltX`, `mul`. `floorDepth = true` cuando hay piso 3D |
+| **cars/** | |
+| `src/cars/registry.js` | `HmoCarRegistry`: `add({ spec, model, voxels? })`, `get(id)`, `list`. El orden de alta es el de la vitrina. Explica cómo agregar un carro |
+| `src/cars/<carro>/car.js` | Un archivo por carro: su ficha (`spec`: física, tuneo y dibujo de arriba) y su silueta lateral para el 3D (`model`, en metros desde la defensa trasera). **Ba-tsuru** `ba-tsuru/` (`pitic`), **Mezquite SR** `mezquite-sr/` (`mezquite`), **Hondiablo Si** `hondiablo-si/` (`choya`) |
+| `src/cars/ba-tsuru/voxels.js` | El Ba-tsuru hecho a mano cubito por cubito (5 cm; 4.35 × 1.70 × 1.40 m) con juntas, moldura, manijas, espejos, antena, faros con divisor, calaveras con reversa, placas y rines tipo tapón. Se cuelga de su ficha en el registro (`voxels`); `HmoModel3D.build` lo usa en lugar de la silueta, que queda de respaldo (y de ahí `colors` lee el material de las defensas). Pintura, wraps y rines funcionan porque usa los mismos materiales |
+| `src/cars/sprites.js` | `HmoCars`: `CARS` (las fichas, sacadas del registro) y `makeSprite(spec, paint)` (pintura, acabado, wrap) |
+| `src/cars/model3d.js` | `HmoModel3D`: carros en 3D de cubitos de 6 cm a partir de la silueta de cada carro (aquí está explicado el formato de `model`), o de su rejilla hecha a mano. `build(spec)` da la malla; `colors(mesh, spec, paint, rim)` aplica pintura, acabado, wrap y rines |
+| `src/cars/physics.js` | `HmoPhysics.Car`: modelo de bicicleta, llantas con curva tipo Pacejka, círculo de fricción, transferencia de peso, ABS, freno de mano, asistencia contra trompos, choques contra tiles sólidos |
+| `src/cars/tuning.js` | `HmoTuning`: catálogo de piezas, `apply(spec, tuning)`, pintura, neones (`NEON`, `neonOf`, `neonSpots`: color de 8 focos alrededor del carro en el tiempo t, lo usan el juego y la vitrina), talleres normales y escondidos, precios (`CAR_FACTOR` por carro) |
+| **characters/** | |
+| `src/characters/character.js` | `HmoCharacter`: personajes de cubitos (`OPTIONS`, `defaultLook`, `lookOf`, `randomLook(rng)`, `build(look, pose)`; poses `parado`, `cruzado` y `telefono`). Mide ~1.75 m y la cara ve a +z |
+| **gameplay/** | |
+| `src/gameplay/progress.js` | `HmoProgress`: partida en localStorage (`hmo.partida.v1`), `ECON` (todos los números de economía, incluidos `carPrice` y `carXPFactor` por carro), niveles de Street XP, `farmRate`, `parkedXP` |
+| `src/gameplay/drift.js` | `HmoDrift.DriftScore`: puntos por ángulo, velocidad y duración, con cadenas |
+| **ui/** | |
+| `src/ui/showroom.js` | `HmoShowroom.Showroom`: vitrina con carrusel; se desliza con el dedo o el mouse, con flechas o con puntos. Los carros que no tienes salen en negro. Si no hay WebGL, usa el dibujo plano |
+| `src/ui/meetscene.js` | `HmoMeetScene.Scene`: escena 3D del meet. Estacionamiento de noche con calle y edificios, tu carro y tú recargado, carros y gente de NPCs (semilla = número de meet) y tráfico que pasa. Se arrastra para girar la cámara. Solo es escena: el XP lo lleva `src/game/meets.js` |
+| `src/ui/fullmap.js` | `HmoFullMap`: mapa completo a pantalla entera (arrastrar, zoom, elegir destino o casa) |
+| `src/ui/menus.js` | `HmoMenus`: pantallas de tu taller (casa) y del taller de tuneo (solo DOM). Las dos usan la vitrina 3D; en el taller de tuneo puedes tunear cualquiera de tus carros, no solo el que traes |
+| `src/ui/charmenu.js` | `HmoCharMenu.Editor`: editor de personaje (apodo, piel, complexión, vello facial, pelo, ropa, tenis, gorra, lentes, cadena) con vista 3D |
+| **game/** | Cada archivo es una IIFE que le cuelga sus funciones y estado a `window.HmoGame` (**G**), y se llaman entre sí por `G.algo()` |
+| `src/game/core.js` | Crea G: mapa, superficies, partida (`G.save`, `G.persist`, `G.home`), el carro (`G.car`, `placeCar`, `resetCar`), canvas (`G.ctx`, `G.view`), avisos (`showToast`, `popup`) |
+| `src/game/input.js` | Teclado y control (`G.keys`, `readInput`, `G.lastInput`) |
+| `src/game/camera.js` | `G.cam`, `updateCamera`, `toggleCamera` |
+| `src/game/effects.js` | Marcas de llanta y humo (`skidStep`, `resetMarks`) |
+| `src/game/fuel.js` | Gasolina, gasolineras (`G.STATIONS`, `G.fuelState`) y grúa |
+| `src/game/nav.js` | Rutas (`G.route`, `G.dest`) y casa (`setHome`, `routeHome`) |
+| `src/game/score.js` | Puntos de drift → dinero y XP (`G.driftScore`, `addXP`) |
+| `src/game/shops.js` | Talleres normales y escondidos en la ciudad |
+| `src/game/meets.js` | Meets, XP por minuto, dejar el carro, abrir y cerrar la escena (`openMeetScene`, `meetHud`) |
+| `src/game/screens.js` | Tu taller, talleres de tuneo, editor de personaje y escena del meet (`G.garage`, `G.shopUI`, `G.charEditor`, `G.meetScene`), entrar con E, `G.paused()` |
+| `src/game/maps.js` | Mapa completo (`G.fullMap`) y minimapa |
+| `src/game/draw.js` | Dibujo del mundo (`G.render`) |
+| `src/game/hud.js` | HUD y botones |
+| `src/game/main.js` | Bucle principal: física fija a 120 Hz y orden de cada cuadro (rutas, meets, talleres, cámara, dibujo, HUD). Corto a propósito |
 
 ## Convenciones y datos clave
 
@@ -71,7 +99,7 @@ python3 -I tools/build_map.py data/raw/centro_campana.json src/map.js [preview.p
 - **El tuneo modifica la especificación**; la física solo lee `spec`: `powerKW`, `grip`, `slideGrip`, `steerSpeed`, `brake`, `mass`, `cgHeight`, `handbrakeGrip`, `drive`.
 - **CSS:** las páginas tienen `[hidden] { display: none !important; }`. Sin esa regla, un elemento con `display: flex` ignora `hidden`; ese error ya pasó con la pantalla de la grúa.
 - **Botones:** después de un clic se llama `blur()`, para que Espacio (freno de mano) no los vuelva a activar.
-- **Paleta «Fachadas mexicanas»** (`C` en `src/tiles.js`): casas, edificios, carros estacionados, árboles, sahuaros y rocas en colores saturados (rosa mexicano, turquesa, mostaza, cobalto, naranja, verde, terracota, morado, amarillo). Calles, banquetas, parques y cerro se quedan neutros. La capa de noche se queda al 84 %.
+- **Paleta «Fachadas mexicanas»** (`C` en `src/world/tiles.js`): casas, edificios, carros estacionados, árboles, sahuaros y rocas en colores saturados (rosa mexicano, turquesa, mostaza, cobalto, naranja, verde, terracota, morado, amarillo). Calles, banquetas, parques y cerro se quedan neutros. La capa de noche se queda al 84 %.
 - **Marcas:** sin nombres de marcas reales en el juego (gasolineras dicen «Gasolinera», frenos «Kit de alto desempeño»). Carros: **Ba-tsuru** (`pitic`, tipo Tsuru), **Mezquite SR** (`mezquite`, tipo Sentra), **Hondiablo Si** (`choya`, tipo Civic). Los ids internos no cambian; ahí está guardado el progreso.
 
 ## Diseño del juego que pidió el usuario
@@ -87,8 +115,8 @@ python3 -I tools/build_map.py data/raw/centro_campana.json src/map.js [preview.p
 
 ## Cómo probar
 
-- Sintaxis: `for f in src/*.js src/game/*.js; do node --check "$f"; done`
-- Física, puntos, tuneo y guardado: en Node, con `global.window = {}` y `global.document = { createElement: () => ({}) }` (y un `localStorage` falso), se cargan con `require('./src/…')` y se simula con `car.step(1/120, input, world)`. Para pruebas sin choques sirve un mundo plano: `{ tileM: 3, solidAt: () => false, surface: () => ({ grip: 1, drag: 0 }) }`.
+- Sintaxis: `find src -name '*.js' -exec node --check {} \;`
+- Física, puntos, tuneo y guardado: en Node, con `global.window = global` (los archivos usan los globales sin `window.`) y `global.document = { createElement: () => ({}) }` (y un `localStorage` falso), se cargan con `require('./src/…')` en el mismo orden que en `index.html` (los carros necesitan antes `src/cars/registry.js` y sus `car.js`; `model3d.js` necesita `src/engine/voxels.js`) y se simula con `new HmoPhysics.Car(spec, x, y, h)` y `car.step(1/120, input, world)`. Para pruebas sin choques sirve un mundo plano: `{ tileM: 3, solidAt: () => false, surface: () => ({ grip: 1, drag: 0 }) }`.
 - No hay navegador headless instalado. Lo visual lo revisa el usuario y manda capturas.
 
 ## Pendiente (orden recomendado)

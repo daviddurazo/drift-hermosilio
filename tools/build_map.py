@@ -1,7 +1,7 @@
 """Convierte un extracto de OpenStreetMap (JSON de Overpass) en un mapa de tiles.
 
 Uso:
-    python3 -I tools/build_map.py data/raw/centro_campana.json src/map.js [preview.png]
+    python3 -I tools/build_map.py data/raw/centro_campana.json src/world/map.js [preview.png]
 
 Cada tile mide TILE_M metros. El resultado es un JS con el mapa codificado en RLE
 (window.HMO_MAP) para que el juego lo cargue aun abriendo el HTML con file://.
@@ -17,7 +17,7 @@ from PIL import Image, ImageDraw
 
 TILE_M = 3.0  # metros por tile
 
-# --- ids de tile (mismo orden en src/tiles.js) ---
+# --- ids de tile (mismo orden en src/world/tiles.js) ---
 T = dict(
     BLOCK=0,      # manzana (sólida, casas procedurales)
     ROAD=1,       # asfalto

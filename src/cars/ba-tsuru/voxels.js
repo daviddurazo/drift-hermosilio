@@ -1,7 +1,7 @@
 // Ba-tsuru en 3D hecho a mano, cubito por cubito (5 cm), con más detalle que la silueta genérica de model3d.js:
 // juntas de puertas, cofre y cajuela, moldura, manijas, espejos, antena, tapón de gasolina, faros con divisor,
 // cuartos que dan vuelta a la esquina, calaveras con reversa, placas y rines tipo tapón.
-// HmoModel3D.build lo usa para el carro 'pitic' (si este archivo está cargado antes que model3d.js).
+// Se cuelga de la ficha del Ba-tsuru en el registro (va después de car.js); HmoModel3D.build lo usa en lugar de la silueta.
 (function () {
   'use strict';
 
@@ -207,5 +207,5 @@
     };
   }
 
-  window.HmoBatsuru3D = { ids: ['pitic'], grid, VOX };
+  HmoCarRegistry.get('pitic').voxels = grid;
 })();

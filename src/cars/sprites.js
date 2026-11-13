@@ -1,38 +1,10 @@
-// Carros del juego: especificaciones (lo que el tuneo va a modificar) y su dibujo visto desde arriba.
+// Carros del juego: la lista de fichas (HmoCars.CARS) y su dibujo visto desde arriba (makeSprite).
 // Nombres y siluetas propias; no usan marcas ni diseños de modelos reales.
 (function () {
   'use strict';
 
-  // Unidades: metros, kg, kW, km/h. grip = coeficiente de fricción de la llanta.
-  const CARS = [
-    {
-      id: 'pitic', name: 'Ba-tsuru', tag: 'Sedán compacto · 90s',
-      color: '#ecebe4', trim: '#b8b5ab',
-      length: 4.25, width: 1.66, wheelbase: 2.43, frontWeight: 0.56, cgHeight: 0.52,
-      mass: 980, powerKW: 85, topKmh: 165, tankL: 50,
-      grip: 0.92, tireB: 10, steerMax: 0.64, brake: 8.5, handbrakeGrip: 0.7,
-      drive: 'RWD',
-      body: { r: 0.12, hood: 1.05, trunk: 0.85, cabinInset: 0.2, glass: '#27303d', style: 'boxy' },
-    },
-    {
-      id: 'mezquite', name: 'Mezquite SR', tag: 'Sedán mediano',
-      color: '#8fa9c2', trim: '#6f879f',
-      length: 4.6, width: 1.76, wheelbase: 2.7, frontWeight: 0.6, cgHeight: 0.55,
-      mass: 1250, powerKW: 110, topKmh: 185, tankL: 52,
-      grip: 1.0, tireB: 8.5, steerMax: 0.56, brake: 9.5, handbrakeGrip: 0.75,
-      drive: 'RWD',
-      body: { r: 0.32, hood: 1.15, trunk: 0.95, cabinInset: 0.22, glass: '#1f2733', style: 'round' },
-    },
-    {
-      id: 'choya', name: 'Hondiablo Si', tag: 'Compacto deportivo',
-      color: '#e4572e', trim: '#2a2d36',
-      length: 4.5, width: 1.8, wheelbase: 2.67, frontWeight: 0.58, cgHeight: 0.48,
-      mass: 1210, powerKW: 140, topKmh: 205, tankL: 47,
-      grip: 1.04, tireB: 9.5, steerMax: 0.6, brake: 10.5, handbrakeGrip: 0.66,
-      drive: 'RWD',
-      body: { r: 0.26, hood: 1.25, trunk: 0.7, cabinInset: 0.2, glass: '#1b2029', style: 'sport' },
-    },
-  ];
+  // Las fichas viven en la carpeta de cada carro (src/cars/<nombre>/car.js) y llegan por el registro.
+  const CARS = HmoCarRegistry.list.map((d) => d.spec);
 
   const PPM = 24; // px por metro del sprite
   const MARGIN = 0.18; // espejos y alerón sobresalen
