@@ -127,7 +127,7 @@
 
     buildStatic() {
       if (this.ground) return;
-      const mk = (b) => this.r.upload(HmoModel3D.fromBoxes(b.boxes, b.vox, true, true));
+      const mk = (b) => this.r.upload(HmoVoxels.fromBoxes(b.boxes, b.vox, true, true));
       this.ground = mk(groundBoxes());
       this.buildings = mk(buildingBoxes());
       this.lamp = mk(lampBoxes());

@@ -152,7 +152,7 @@
   }
 
   // malla lista para HmoGL (stat/dyn); y = 0 es el piso
-  function build(look, pose) { return HmoModel3D.fromBoxes(boxes(look, pose), VOX, true); }
+  function build(look, pose) { return HmoVoxels.fromBoxes(boxes(look, pose), VOX, true); }
 
   window.HmoCharacter = { OPTIONS, VOX, defaultLook, lookOf, randomLook, boxes, build };
 })();

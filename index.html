@@ -471,25 +471,37 @@
 <div class="aviso" id="aviso" role="status" hidden></div>
 <div class="credit">Mapa © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">colaboradores de OpenStreetMap</a></div>
 
-<script src="src/map.js"></script>
-<script src="src/tiles.js"></script>
-<script src="src/cars.js"></script>
-<script src="src/batsuru3d.js"></script>
-<script src="src/model3d.js"></script>
-<script src="src/gl3d.js"></script>
-<script src="src/character.js"></script>
-<script src="src/showroom.js"></script>
-<script src="src/meetscene.js"></script>
-<script src="src/physics.js"></script>
-<script src="src/route.js"></script>
-<script src="src/night.js"></script>
-<script src="src/streets.js"></script>
-<script src="src/fullmap.js"></script>
-<script src="src/progress.js"></script>
-<script src="src/tuning.js"></script>
-<script src="src/drift.js"></script>
-<script src="src/menus.js"></script>
-<script src="src/charmenu.js"></script>
+<!-- mundo: mapa (generado), tiles, rutas, noche y nombres de calles -->
+<script src="src/world/map.js"></script>
+<script src="src/world/tiles.js"></script>
+<script src="src/world/route.js"></script>
+<script src="src/world/night.js"></script>
+<script src="src/world/streets.js"></script>
+<!-- motor 3D de cubitos -->
+<script src="src/engine/voxels.js"></script>
+<script src="src/engine/gl3d.js"></script>
+<!-- carros: registro, un archivo (o carpeta) por carro, y lo que es común a todos -->
+<script src="src/cars/registry.js"></script>
+<script src="src/cars/ba-tsuru/car.js"></script>
+<script src="src/cars/ba-tsuru/voxels.js"></script>
+<script src="src/cars/mezquite-sr/car.js"></script>
+<script src="src/cars/hondiablo-si/car.js"></script>
+<script src="src/cars/sprites.js"></script>
+<script src="src/cars/model3d.js"></script>
+<script src="src/cars/physics.js"></script>
+<script src="src/cars/tuning.js"></script>
+<!-- personajes -->
+<script src="src/characters/character.js"></script>
+<!-- reglas del juego: partida, economía y puntos de drift -->
+<script src="src/gameplay/progress.js"></script>
+<script src="src/gameplay/drift.js"></script>
+<!-- pantallas e interfaz -->
+<script src="src/ui/showroom.js"></script>
+<script src="src/ui/meetscene.js"></script>
+<script src="src/ui/fullmap.js"></script>
+<script src="src/ui/menus.js"></script>
+<script src="src/ui/charmenu.js"></script>
+<!-- el juego (G): core.js primero y main.js al final -->
 <script src="src/game/core.js"></script>
 <script src="src/game/input.js"></script>
 <script src="src/game/camera.js"></script>
@@ -503,6 +515,6 @@
 <script src="src/game/maps.js"></script>
 <script src="src/game/draw.js"></script>
 <script src="src/game/hud.js"></script>
-<script src="src/game.js"></script>
+<script src="src/game/main.js"></script>
 </body>
 </html>

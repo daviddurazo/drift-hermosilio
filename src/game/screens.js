@@ -1,5 +1,5 @@
 // Pantallas: tu taller (casa) y los talleres de tuneo, y entrar a ellos con E.
-// Los menús (src/menus.js) solo pintan; aquí está lo que pasa al comprar, salir a manejar, etc.
+// Los menús (src/ui/menus.js) solo pintan; aquí está lo que pasa al comprar, salir a manejar, etc.
 (function () {
   'use strict';
 

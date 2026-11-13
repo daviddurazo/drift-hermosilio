@@ -1,5 +1,5 @@
 // Mapa de tiles de Hermosillo: decodificación, propiedades y dibujo con estilo de cuadrícula.
-// Lo usan el visor (mapa.html) y, después, el juego.
+// Lo usan el juego y el visor del mapa (tools/mapa.html).
 (function () {
   'use strict';
 

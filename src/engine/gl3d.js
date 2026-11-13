@@ -1,5 +1,5 @@
 // Motor 3D mínimo en WebGL (sin librerías) para todo lo que es de cubitos: la vitrina, el editor de personaje
-// y la escena del meet. Dibuja mallas de HmoModel3D, sombras suaves en el piso y luces de color en el piso.
+// y la escena del meet. Dibuja mallas de cubitos (HmoVoxels, HmoModel3D), sombras suaves en el piso y luces de color en el piso.
 (function () {
   'use strict';
 
